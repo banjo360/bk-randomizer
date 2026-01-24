@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::utils::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;

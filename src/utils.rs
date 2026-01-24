@@ -117,3 +117,47 @@ pub fn write_3_u8<W: Write>(writer: &mut W, vec: &Vector3<u8>) -> Result<(), Box
     writer.write_u8(vec.z)?;
     Ok(())
 }
+
+#[macro_export]
+macro_rules! enum_builder {
+    (
+        #[repr($typ:ty)]
+
+        $access:vis enum $name:ident {
+            $( $arm:ident = $val:literal ),* $(,)?
+        }
+    ) => {
+        #[derive(Debug, Copy, Clone)]
+        $access enum $name {
+            $($arm,)*
+            Unknown($typ),
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $($name::$arm => write!(f, "{}", stringify!($arm)) ,)*
+                    $name::Unknown(v) => write!(f, "Unknown({v})"),
+                }
+            }
+        }
+
+        impl From<$typ> for $name {
+            fn from(value: $typ) -> Self {
+                match value {
+                    $($val => $name::$arm,)*
+                    _ => $name::Unknown(value),
+                }
+            }
+        }
+
+        impl Into<$typ> for $name {
+            fn into(self) -> $typ {
+                match self {
+                    $($name::$arm => $val ,)*
+                    $name::Unknown(v) => v,
+                }
+            }
+        }
+    };
+}

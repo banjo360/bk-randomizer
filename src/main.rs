@@ -10,7 +10,7 @@ use std::{error::Error, io::SeekFrom};
 
 mod enums;
 mod lvl_setup;
-mod types;
+mod utils;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // need an unencrypted file

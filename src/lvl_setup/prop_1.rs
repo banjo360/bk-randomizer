@@ -1,5 +1,5 @@
 use crate::enums::ActorId;
-use crate::types::*;
+use crate::utils::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
@@ -32,6 +32,21 @@ impl Into<u8> for Category {
             Category::CameraTrigger(_) => 9,
             Category::Flags(_) => 10,
             Category::Unknown(value, _) => value,
+        }
+    }
+}
+
+impl std::fmt::Display for Category {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Category::WarpOrTrigger(actor_id) => write!(f, "WarpOrTrigger({actor_id})"),
+            Category::CameraController(actor_id) => write!(f, "CameraController({actor_id})"),
+            Category::Actor(actor_id) => write!(f, "Actor({actor_id})"),
+            Category::EnemyBoundary(actor_id) => write!(f, "EnemyBoundary({actor_id})"),
+            Category::Path(actor_id) => write!(f, "Path({actor_id})"),
+            Category::CameraTrigger(actor_id) => write!(f, "CameraTrigger({actor_id})"),
+            Category::Flags(actor_id) => write!(f, "Flags({actor_id})"),
+            Category::Unknown(cat, actor_id) => write!(f, "Unknown({cat}, {actor_id})"),
         }
     }
 }
@@ -77,7 +92,6 @@ impl Prop1 {
             selector_or_radius,
             category,
             unk_bit_0,
-            // actor_id,
             marker_id,
             byte_0b,
             bitfield_0c,
