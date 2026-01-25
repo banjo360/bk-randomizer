@@ -171,26 +171,34 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
     reader.read(&mut buffer)?;
     assert_eq!(reader.read_u8()?, 0);
 
-    // detect if Japanese text
-    if buffer[0] == 0xFD && buffer[1] == 0x6A {
-        let s = buffer
-            .iter()
-            .skip(2)
-            .map(|b| {
-                let c = JAPANESE_CHARACTERS[*b as usize];
-                if c == '_' {
-                    panic!("{b:X} / {b} is unknown.");
-                }
-                c
-            })
-            .collect::<String>();
-        Ok(s.into())
-    } else {
-        let s = buffer
-            .iter()
-            .map(|c| match c {
-                b'A'..=b'Z' => *c as char,
-                b'0'..=b'9' => *c as char,
+    let mut index = 0;
+    let mut japanese = false;
+    let mut target_buffer = vec![];
+    while index < buffer.len() {
+        let c = buffer[index];
+        index += 1;
+
+        // control character
+        if c == 0xFD {
+            let code = buffer[index];
+            index += 1;
+
+            match code {
+                0x68 => { /*wiggle start?*/ }
+                0x6A => japanese = true,
+                0x6C => { /*wiggle stop?*/ }
+                _ => panic!("Unknown control character {code:X}"),
+            }
+        } else if japanese {
+            let target = JAPANESE_CHARACTERS[c as usize];
+            if target == '_' {
+                // panic!("{b:X} / {b} is unknown.");
+            }
+            target_buffer.push(target);
+        } else {
+            let target = match c {
+                b'A'..=b'Z' => c as char,
+                b'0'..=b'9' => c as char,
                 b'a' => 'Ç',
                 b'b' => 'É',
                 b'c' => 'È',
@@ -200,7 +208,6 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
                 b'h' => 'Ô',
                 b'i' => 'Û',
                 b'k' => 'Ù',
-                b'l' => 'l', // unknown (also used in the EN dialogue)
                 b'`' => 'Â',
                 b'_' => 'À',
                 b']' => 'Ü',
@@ -220,12 +227,14 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
                 b'(' => '(',
                 b')' => ')',
                 b'~' => '~', // placeholder
-                0xFD => '$', // timer/pause?
-                _ => panic!("char {c} / {c:X} / {} unknown", *c as char),
-            })
-            .collect::<String>();
-        Ok(s.into())
+                _ => panic!("char {c} / {c:X} / {} unknown", c as char),
+            };
+            target_buffer.push(target);
+        }
     }
+
+    let s = target_buffer.iter().collect::<String>();
+    Ok(s.into())
 }
 
 #[rustfmt::skip]
