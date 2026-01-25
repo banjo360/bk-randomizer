@@ -18,22 +18,32 @@ enum_builder! {
 
 enum_builder! {
     #[repr(u16)]
-    pub enum LevelSetup {
-        SpiralMountain = 1821,
-        MumbosMountain = 1822,
+    pub enum MapSetupId {
+        SpiralMountain = 0x71D,
+        MumbosMountain = 0x71E,
+        BlubbersShip = 0x721,
+        NippersShell = 0x722,
+        TreasureTroveCove = 0x723,
+        Sandcastle = 0x726,
+        ClankersCavern = 0x727,
+        TermiteHill = 0x728,
+        BubbleGloopSwamp = 0x729,
+        MumbosSkull = 0x72A,
+        MrVile = 0x72C,
+        TipTupChoir = 0x72D,
     }
 }
 
 enum_builder! {
     #[repr(u16)]
-    pub enum Dialogue {
-        CaptnBlubber = 2316,
+    pub enum DialogueId {
+        CaptnBlubber = 0x90C,
     }
 }
 
 pub enum AssetId {
-    LevelSetup(LevelSetup),
-    Dialogue(Dialogue),
+    MapSetup(MapSetupId),
+    Dialogue(DialogueId),
 }
 
 enum_builder! {

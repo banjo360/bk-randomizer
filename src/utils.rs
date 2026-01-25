@@ -6,8 +6,6 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
 
-use crate::enums::Language;
-
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
 pub struct Vector3<T> {
     pub x: T,
@@ -55,14 +53,12 @@ pub fn read_3_u16<R: Read + Seek>(reader: &mut R) -> Result<Vector3<u16>, Box<dy
     Ok(Vector3 { x, y, z })
 }
 
-#[allow(dead_code)]
 pub fn read_2_i16<R: Read + Seek>(reader: &mut R) -> Result<Vector2<i16>, Box<dyn Error>> {
     let x = reader.read_i16::<BigEndian>()?;
     let y = reader.read_i16::<BigEndian>()?;
     Ok(Vector2 { x, y })
 }
 
-#[allow(dead_code)]
 pub fn read_3_u8<R: Read + Seek>(reader: &mut R) -> Result<Vector3<u8>, Box<dyn Error>> {
     let x = reader.read_u8()?;
     let y = reader.read_u8()?;
@@ -97,14 +93,12 @@ pub fn write_3_u16<W: Write>(writer: &mut W, vec: &Vector3<u16>) -> Result<(), B
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn write_2_i16<W: Write>(writer: &mut W, vec: &Vector2<i16>) -> Result<(), Box<dyn Error>> {
     writer.write_i16::<BigEndian>(vec.x)?;
     writer.write_i16::<BigEndian>(vec.y)?;
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn write_3_u32<W: Write>(writer: &mut W, vec: &Vector3<u32>) -> Result<(), Box<dyn Error>> {
     writer.write_u32::<BigEndian>(vec.x)?;
     writer.write_u32::<BigEndian>(vec.y)?;
@@ -112,7 +106,6 @@ pub fn write_3_u32<W: Write>(writer: &mut W, vec: &Vector3<u32>) -> Result<(), B
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn write_3_u8<W: Write>(writer: &mut W, vec: &Vector3<u8>) -> Result<(), Box<dyn Error>> {
     writer.write_u8(vec.x)?;
     writer.write_u8(vec.y)?;
@@ -197,13 +190,23 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
             .iter()
             .map(|c| match c {
                 b'A'..=b'Z' => *c as char,
+                b'0'..=b'9' => *c as char,
+                b'a' => 'Ç',
                 b'b' => 'É',
                 b'c' => 'È',
                 b'd' => 'Ê',
+                b'f' => 'Î',
+                b'g' => 'Ï',
+                b'h' => 'Ô',
+                b'i' => 'Û',
+                b'k' => 'Ù',
+                b'l' => 'l', // unknown (also used in the EN dialogue)
+                b'`' => 'Â',
                 b'_' => 'À',
                 b']' => 'Ü',
                 b'\\' => 'Ö',
                 b'[' => 'Ä',
+                b'^' => 'ß', // unknown (random letter for now)
                 b'\'' => '\'',
                 b' ' => ' ',
                 b'!' => '!',
@@ -211,6 +214,13 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
                 b',' => ',',
                 b'?' => '?',
                 b'-' => '-',
+                b':' => ':',
+                b';' => ';',
+                b'&' => '&',
+                b'(' => '(',
+                b')' => ')',
+                b'~' => '~', // placeholder
+                0xFD => '$', // timer/pause?
                 _ => panic!("char {c} / {c:X} / {} unknown", *c as char),
             })
             .collect::<String>();
