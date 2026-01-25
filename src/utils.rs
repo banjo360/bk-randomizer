@@ -167,35 +167,7 @@ macro_rules! enum_builder {
     };
 }
 
-pub fn read_string<R: Read + Seek>(
-    reader: &mut R,
-    lang: Language,
-) -> Result<String, Box<dyn Error>> {
-    match lang {
-        Language::English => read_string_en(reader),
-        Language::Japanese => read_string_ja(reader),
-        Language::French => read_string_fr(reader),
-        Language::German => read_string_de(reader),
-        Language::Unknown(_) => unreachable!(),
-    }
-}
-
-// depending on the outcome, maybe merging of at least EN/FR/DE is possible?
-pub fn read_string_en<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
-    let len = reader.read_u8()?;
-    if len == 1 {
-        assert_eq!(reader.read_u8()?, 0);
-        return Ok("".into());
-    }
-
-    let mut buffer = vec![0u8; len as usize - 1];
-    reader.read(&mut buffer)?;
-    assert_eq!(reader.read_u8()?, 0);
-    let s = str::from_utf8(&buffer)?;
-    Ok(s.into())
-}
-
-pub fn read_string_ja<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
+pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
     let len = reader.read_u8()?;
     if len == 1 {
         assert_eq!(reader.read_u8()?, 0);
@@ -206,6 +178,7 @@ pub fn read_string_ja<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn 
     reader.read(&mut buffer)?;
     assert_eq!(reader.read_u8()?, 0);
 
+    // detect if Japanese text
     if buffer[0] == 0xFD && buffer[1] == 0x6A {
         let s = buffer
             .iter()
@@ -213,76 +186,36 @@ pub fn read_string_ja<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn 
             .map(|b| {
                 let c = JAPANESE_CHARACTERS[*b as usize];
                 if c == '_' {
-                    // panic!("{b:X} / {b} is unknown.");
+                    panic!("{b:X} / {b} is unknown.");
                 }
                 c
             })
             .collect::<String>();
         Ok(s.into())
     } else {
-        let s = str::from_utf8(&buffer)?;
+        let s = buffer
+            .iter()
+            .map(|c| match c {
+                b'A'..=b'Z' => *c as char,
+                b'b' => 'É',
+                b'c' => 'È',
+                b'd' => 'Ê',
+                b'_' => 'À',
+                b']' => 'Ü',
+                b'\\' => 'Ö',
+                b'[' => 'Ä',
+                b'\'' => '\'',
+                b' ' => ' ',
+                b'!' => '!',
+                b'.' => '.',
+                b',' => ',',
+                b'?' => '?',
+                b'-' => '-',
+                _ => panic!("char {c} / {c:X} / {} unknown", *c as char),
+            })
+            .collect::<String>();
         Ok(s.into())
     }
-}
-
-pub fn read_string_fr<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
-    let len = reader.read_u8()?;
-    if len == 1 {
-        assert_eq!(reader.read_u8()?, 0);
-        return Ok("".into());
-    }
-
-    let mut buffer = vec![0u8; len as usize - 1];
-    reader.read(&mut buffer)?;
-    assert_eq!(reader.read_u8()?, 0);
-    let s = buffer
-        .iter()
-        .map(|c| match c {
-            b'a' => todo!(),
-            b'b' => 'É',
-            b'c' => 'È',
-            b'd' => 'Ê',
-            b'_' => 'À',
-            b'A'..=b'Z' => *c as char,
-            b'\'' => '\'',
-            b' ' => ' ',
-            b'!' => '!',
-            b'.' => '.',
-            b',' => ',',
-            b'?' => '?',
-            b'-' => '-',
-            _ => panic!("FR char {c} / {c:X} / {} unknown", *c as char),
-        })
-        .collect::<String>();
-    Ok(s.into())
-}
-
-pub fn read_string_de<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
-    let len = reader.read_u8()?;
-    if len == 1 {
-        assert_eq!(reader.read_u8()?, 0);
-        return Ok("".into());
-    }
-
-    let mut buffer = vec![0u8; len as usize - 1];
-    reader.read(&mut buffer)?;
-    assert_eq!(reader.read_u8()?, 0);
-    let s = buffer
-        .iter()
-        .map(|c| match c {
-            b']' => 'Ü',
-            b'\\' => 'Ö',
-            b'[' => 'Ä',
-            b'A'..=b'Z' => *c as char,
-            b' ' => ' ',
-            b'!' => '!',
-            b'.' => '.',
-            b',' => ',',
-            b'?' => '?',
-            _ => panic!("DE char {c} / {c:X} / {} unknown", *c as char),
-        })
-        .collect::<String>();
-    Ok(s.into())
 }
 
 #[rustfmt::skip]

@@ -60,13 +60,13 @@ impl Dialogue {
 
             let bottom = reader.read_u8()?;
             for _ in 0..bottom {
-                let command = DialogueCommand::new(reader, lang.into())?;
+                let command = DialogueCommand::new(reader)?;
                 bottoms.push(command);
             }
 
             let top = reader.read_u8()?;
             for _ in 0..top {
-                let command = DialogueCommand::new(reader, lang.into())?;
+                let command = DialogueCommand::new(reader)?;
                 tops.push(command);
             }
 
@@ -84,17 +84,17 @@ impl Dialogue {
 }
 
 impl DialogueCommand {
-    pub fn new<R: Read + Seek>(reader: &mut R, lang: Language) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let command_id = reader.read_u8()?;
 
         Ok(match command_id {
             4 => {
-                let string = read_string(reader, lang)?;
+                let string = read_string(reader)?;
                 assert_eq!(string.len(), 0);
                 DialogueCommand::EndOfSection
             }
             6 => {
-                let string = read_string(reader, lang)?;
+                let string = read_string(reader)?;
                 assert_eq!(string.len(), 0);
                 DialogueCommand::SwitchBox
             }
@@ -108,7 +108,7 @@ impl DialogueCommand {
                 DialogueCommand::Trigger(value)
             }
             128..137 => {
-                let string = read_string(reader, lang)?;
+                let string = read_string(reader)?;
                 DialogueCommand::Speak(command_id.into(), string)
             }
             _ => panic!("todo: command {command_id:X}"),
