@@ -171,6 +171,11 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
     reader.read(&mut buffer)?;
     assert_eq!(reader.read_u8()?, 0);
 
+    let s = convert_banjo_string(buffer);
+    Ok(s)
+}
+
+pub fn convert_banjo_string(buffer: Vec<u8>) -> String {
     let mut index = 0;
     let mut japanese = false;
     let mut target_buffer = vec![];
@@ -211,7 +216,7 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
                 b'`' => 'Â',
                 b'_' => 'À',
                 b']' => 'Ü',
-                b'\\' => 'Ö',
+                b'\\' => 'Ö', // for dialogues. unknown for X360_strings.dat
                 b'[' => 'Ä',
                 b'^' => 'ß', // unknown (random letter for now)
                 b'\'' => '\'',
@@ -226,6 +231,9 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
                 b'&' => '&',
                 b'(' => '(',
                 b')' => ')',
+                b'/' => '/',
+                b'+' => '+',
+                b'<' => '©',
                 b'~' => '~', // placeholder
                 _ => panic!("char {c} / {c:X} / {} unknown", c as char),
             };
@@ -233,8 +241,23 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
         }
     }
 
-    let s = target_buffer.iter().collect::<String>();
-    Ok(s.into())
+    target_buffer.iter().collect::<String>()
+}
+
+pub fn convert_iso_8859_1(buffer: Vec<u8>) -> String {
+    buffer
+        .iter()
+        .map(|b| match b {
+            0x20..=0x7E => *b as char,
+            0xA0 => *b as char, // NBSP
+            0xC9 => 'É',
+            0xE0 => 'à',
+            0xE8 => 'è',
+            0xE9 => 'é',
+            0xEA => 'ê',
+            _ => panic!("unhandled byte {b:X}"),
+        })
+        .collect::<String>()
 }
 
 #[rustfmt::skip]
