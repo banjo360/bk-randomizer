@@ -31,6 +31,7 @@ pub enum DialogueCommand {
     EndOfSection,
     SwitchBox,
     Speak(Speaker, String),
+    Trigger(u8),
 }
 
 pub struct DialogueData {
@@ -96,6 +97,15 @@ impl DialogueCommand {
                 let string = read_string(reader, lang)?;
                 assert_eq!(string.len(), 0);
                 DialogueCommand::SwitchBox
+            }
+            7 => {
+                let len = reader.read_u8()?;
+                assert_eq!(len, 2);
+                let value = reader.read_u8()?;
+
+                let null = reader.read_u8()?;
+                assert_eq!(null, 0);
+                DialogueCommand::Trigger(value)
             }
             128..137 => {
                 let string = read_string(reader, lang)?;
