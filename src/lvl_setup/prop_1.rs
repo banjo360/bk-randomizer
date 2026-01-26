@@ -9,7 +9,7 @@ use std::io::Seek;
 use std::io::Write;
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Category {
     WarpOrTrigger(u16),
     CameraController(u16),

@@ -11,6 +11,8 @@ use std::{error::Error, io::SeekFrom};
 mod dialogue;
 mod enums;
 mod lvl_setup;
+mod question;
+mod strings;
 mod utils;
 
 fn main() -> Result<(), Box<dyn Error>> {

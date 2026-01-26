@@ -124,7 +124,7 @@ macro_rules! enum_builder {
             $( $arm:ident = $val:literal ),* $(,)?
         }
     ) => {
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy, Clone, PartialEq)]
         $( #[$meta] )*
         $access enum $name {
             $($arm,)*
