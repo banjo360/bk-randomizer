@@ -81,6 +81,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             AssetId::Unknown(unknown_id) => {
                 Unknown::new(&mut file, sizes[id])?;
             }
+            AssetId::Xbox(xbox_id) => {
+                Dialogue::new(&mut file)?;
+            }
         }
 
         // for some reason, some files are aligned on 8 bytes and some aren't

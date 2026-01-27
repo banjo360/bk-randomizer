@@ -7,6 +7,7 @@ pub use self::midis::MidiId;
 pub use self::models::ModelId;
 pub use self::questions::QuestionId;
 pub use self::sprites::SpriteId;
+pub use self::xbox::XboxId;
 use crate::enum_builder;
 
 enum_builder! {
@@ -69,14 +70,6 @@ enum_builder! {
         Unknown007B2218 = 2312,
         Unknown011E5751 = 3642,
         Unknown011E583D = 3643,
-        Unknown011E974F = 3692,
-        Unknown011E9AD0 = 3693,
-        Unknown011E9BBC = 3694,
-        Unknown011E9CBD = 3695,
-        Unknown011E9EED = 3696,
-        Unknown011EA13F = 3697,
-        Unknown011EA328 = 3698,
-        Unknown011EA444 = 3699,
         Unknown011EA54B = 3700,
     }
 }
@@ -90,18 +83,20 @@ pub mod midis;
 pub mod models;
 pub mod questions;
 pub mod sprites;
+pub mod xbox;
 
 pub enum AssetId {
-    Empty,
     Animation(AnimationId),
+    Credits(CreditsId),
+    Dialogue(DialogueId),
+    Empty,
+    MapSetup(MapSetupId),
     Midi(MidiId),
     Model(ModelId),
-    MapSetup(MapSetupId),
-    Dialogue(DialogueId),
-    Credits(CreditsId),
-    Sprite(SpriteId),
     Question(QuestionId),
+    Sprite(SpriteId),
     Unknown(UnknownId),
+    Xbox(XboxId),
 }
 
 enum_builder! {

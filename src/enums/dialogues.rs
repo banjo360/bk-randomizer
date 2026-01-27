@@ -732,5 +732,6 @@ enum_builder! {
         Dialogue007F79D8 = 3050,
         Dialogue007F7B13 = 3051,
         Dialogue007F7C4D = 3052,
+        UnusedDialogue = 3692,
     }
 }
