@@ -1,5 +1,5 @@
-use crate::map_setup::Prop1;
-use crate::map_setup::Prop2;
+use super::Prop1;
+use super::Prop2;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;

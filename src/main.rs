@@ -1,25 +1,22 @@
 #![allow(unused)]
+use crate::assets::dialogue::Dialogue;
+use crate::assets::map_setup::Category;
+use crate::assets::map_setup::MapSetup;
+use crate::assets::question::Question;
+use crate::assets::unknown::Unknown;
 use crate::enums::*;
-use crate::unknown::Unknown;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
-use db360::ASSETS;
-use dialogue::Dialogue;
-use map_setup::MapSetup;
-use question::Question;
+use data::db360::ASSETS;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Seek;
 
-mod animation;
-mod db360;
-mod dialogue;
+mod assets;
+mod data;
 mod enums;
-mod map_setup;
-mod question;
 mod strings;
-mod unknown;
 mod utils;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,6 +49,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // parse all (known) assets to check the readers
     for (id, asset) in ASSETS.iter().enumerate() {
+        let pos = file.seek(std::io::SeekFrom::Current(0))?;
+
         match asset {
             AssetId::Empty => {}
             AssetId::Animation(animation_id) => {
@@ -64,7 +63,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Unknown::new(&mut file, sizes[id])?;
             }
             AssetId::MapSetup(map_setup_id) => {
-                MapSetup::new(&mut file)?;
+                let mut map = MapSetup::new(&mut file)?;
+
+                match map_setup_id {
+                    MapSetupId::GlMmLobby => {
+                        for c in &mut map.cubes {
+                            for o in &mut c.props_1 {
+                                if let Category::WarpOrTrigger(WarpOrTriggerId::MmEnterLevel) =
+                                    o.category
+                                {
+                                    o.category =
+                                        Category::WarpOrTrigger(WarpOrTriggerId::FpEnterLevel);
+                                }
+                            }
+                        }
+
+                        file.seek(std::io::SeekFrom::Start(pos))?;
+                        map.write(&mut file)?;
+                    }
+                    _ => {}
+                }
             }
             AssetId::Dialogue(dialogue_id) => {
                 Dialogue::new(&mut file)?;
