@@ -1,4 +1,5 @@
-use crate::enums::ActorId;
+use crate::ActorId;
+use crate::WarpOrTriggerId;
 use crate::utils::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
@@ -11,7 +12,7 @@ use std::io::Write;
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq)]
 pub enum Category {
-    WarpOrTrigger(u16),
+    WarpOrTrigger(WarpOrTriggerId),
     CameraController(u16),
     Actor(ActorId),
     EnemyBoundary(u16),
@@ -76,7 +77,7 @@ impl Prop1 {
         let selector_or_radius = bitfield_06 >> 7;
         let category = ((bitfield_06 >> 1) & 0b111111) as u8;
         let category = match category {
-            3 => Category::WarpOrTrigger(actor_id),
+            3 => Category::WarpOrTrigger(actor_id.into()),
             4 => Category::CameraController(actor_id),
             6 => Category::Actor(actor_id.into()),
             7 => Category::EnemyBoundary(actor_id),
@@ -107,13 +108,13 @@ impl Prop1 {
             (self.selector_or_radius << 7) + ((category << 1) + self.unk_bit_0) as u16;
         writer.write_u16::<BigEndian>(bitfield_06)?;
         let actor_id = match self.category {
-            Category::WarpOrTrigger(actor_id)
-            | Category::CameraController(actor_id)
+            Category::CameraController(actor_id)
             | Category::EnemyBoundary(actor_id)
             | Category::Path(actor_id)
             | Category::CameraTrigger(actor_id)
             | Category::Flags(actor_id)
             | Category::Unknown(_, actor_id) => actor_id,
+            Category::WarpOrTrigger(actor_id) => actor_id.into(),
             Category::Actor(actor_id) => actor_id.into(),
         };
         writer.write_u16::<BigEndian>(actor_id)?;

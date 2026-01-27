@@ -7,6 +7,7 @@ pub use self::midis::MidiId;
 pub use self::models::ModelId;
 pub use self::questions::QuestionId;
 pub use self::sprites::SpriteId;
+pub use self::warp_or_trigger::WarpOrTriggerId;
 pub use self::xbox::XboxId;
 use crate::enum_builder;
 
@@ -83,6 +84,7 @@ pub mod midis;
 pub mod models;
 pub mod questions;
 pub mod sprites;
+pub mod warp_or_trigger;
 pub mod xbox;
 
 pub enum AssetId {
