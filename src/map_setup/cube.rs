@@ -1,4 +1,5 @@
-use crate::lvl_setup::{Prop1, Prop2};
+use crate::map_setup::Prop1;
+use crate::map_setup::Prop2;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;

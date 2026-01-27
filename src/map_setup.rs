@@ -19,13 +19,13 @@ pub use prop_1::Prop1;
 mod prop_2;
 pub use prop_2::Prop2;
 
-pub struct LevelSetup {
+pub struct MapSetup {
     pub cubes: Vec<Cube>,
     pub cameras: Vec<Camera>,
     pub lightings: Vec<Lighting>,
 }
 
-impl LevelSetup {
+impl MapSetup {
     pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let header = reader.read_u16::<BigEndian>()?;
         assert_eq!(header, 0x0101);
