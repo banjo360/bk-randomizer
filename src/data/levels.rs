@@ -1,42 +1,46 @@
 use crate::ActorId;
 use crate::MapSetupId;
 
-#[repr(usize)]
-enum LevelId {
-    MumbosMountain = 0,
-    TreasureTroveCove,
-    ClankersCavern,
-    BubblegloopSwamp,
-    FreezeezyPeak,
-    Lair,
-    GobisValley,
-    ClickClockWood,
-    RustyBucketBay,
-    MadMonsterMansion,
+struct LevelInfo {
+    setup_id: MapSetupId,
+    warp_entry_point: ActorId,
 }
 
-const MAIN_MAP_SETUP_ID: [MapSetupId; 10] = [
-    MapSetupId::MumbosMountain,
-    MapSetupId::TreasureTroveCove,
-    MapSetupId::ClankersCavern,
-    MapSetupId::BubbleGloopSwamp,
-    MapSetupId::FreezeezyPeak,
-    MapSetupId::TestHouse,
-    MapSetupId::GobisValley,
-    MapSetupId::CcwHub,
-    MapSetupId::RustyBucketBay,
-    MapSetupId::MadMonsterMansion,
-];
-
-const ENTRY_POINTS: [ActorId; 10] = [
-    ActorId::EntryPoint5,
-    ActorId::EntryPoint4,
-    ActorId::EntryPoint5,
-    ActorId::EntryPoint2,
-    ActorId::EntryPoint1,
-    ActorId::Bigbutt, // the lair, unused
-    ActorId::EntryPoint8,
-    ActorId::EntryPoint7,
-    ActorId::EntryPoint16,
-    ActorId::EntryPoint20,
+const LEVELS_INFO: [LevelInfo; 9] = [
+    LevelInfo {
+        setup_id: MapSetupId::MumbosMountain,
+        warp_entry_point: ActorId::EntryPoint5,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::TreasureTroveCove,
+        warp_entry_point: ActorId::EntryPoint4,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::ClankersCavern,
+        warp_entry_point: ActorId::EntryPoint5,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::BubbleGloopSwamp,
+        warp_entry_point: ActorId::EntryPoint2,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::FreezeezyPeak,
+        warp_entry_point: ActorId::EntryPoint1,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::GobisValley,
+        warp_entry_point: ActorId::EntryPoint8,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::CcwHub,
+        warp_entry_point: ActorId::EntryPoint7,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::RustyBucketBay,
+        warp_entry_point: ActorId::EntryPoint16,
+    },
+    LevelInfo {
+        setup_id: MapSetupId::MadMonsterMansion,
+        warp_entry_point: ActorId::EntryPoint20,
+    },
 ];
