@@ -4,9 +4,12 @@ use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::question::Question;
 use crate::assets::unknown::Unknown;
+use crate::data::xex::WORLD_OPENED_FLAGS;
+use crate::data::xex::WORLD_SIGNS_FLAGS;
 use crate::enums::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
+use byteorder::WriteBytesExt;
 use data::db360::ASSETS;
 use std::error::Error;
 use std::fs::OpenOptions;
@@ -75,6 +78,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     o.category =
                                         Category::WarpOrTrigger(WarpOrTriggerId::FpEnterLevel);
                                 }
+
+                                if let Category::Actor(ActorId::WorldSign) = o.category {
+                                    o.selector_or_radius = 5;
+                                }
                             }
                         }
 
@@ -113,6 +120,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         file.seek_relative(-1);
     }
+
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open("default.xex")?;
+    file.seek(std::io::SeekFrom::Start(WORLD_OPENED_FLAGS + 4 * 4))?;
+    file.write_u32::<BigEndian>(0x00690002)?;
+    file.seek(std::io::SeekFrom::Start(WORLD_SIGNS_FLAGS + 4 * 2))?;
+    file.write_u16::<BigEndian>(0x0031)?;
 
     Ok(())
 }
