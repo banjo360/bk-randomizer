@@ -17,6 +17,7 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Seek;
+use std::io::Write;
 
 mod assets;
 mod data;
@@ -138,20 +139,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut patched = OpenOptions::new()
         .create(true)
         .write(true)
+        .truncate(true)
         .open("db360.cmp.patched")?;
 
     patched.write_u32::<BigEndian>(entry_count)?;
+    patched.write_u32::<BigEndian>(0xCDCDCDCD)?;
     for _ in 0..entry_count {
         patched.write_u32::<BigEndian>(0)?;
         patched.write_u32::<BigEndian>(0)?;
     }
 
     let mut offsets = vec![];
-    let mut header = file.seek(std::io::SeekFrom::Current(0))?;
+    let mut header = patched.seek(std::io::SeekFrom::Current(0))?;
 
     for i in 0..entry_count {
-        let mut current_offset = file.seek(std::io::SeekFrom::Current(0))? - header;
-        offsets.push(current_offset);
+        let mut current_offset = patched.seek(std::io::SeekFrom::Current(0))? - header;
+        offsets.push(current_offset as u32);
 
         match &loaded_assets[i as usize] {
             Asset::Animation(animation) => {
@@ -171,6 +174,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Asset::Empty => {}
         }
+    }
+
+    patched.seek(std::io::SeekFrom::Start(8))?;
+    for (id, format) in ASSETS.iter().enumerate() {
+        patched.write_u32::<BigEndian>(offsets[id])?;
+        patched.write_u32::<BigEndian>(flags[id])?;
     }
 
     let mut file = OpenOptions::new()
