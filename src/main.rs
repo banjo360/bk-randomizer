@@ -7,10 +7,12 @@ use crate::assets::unknown::Unknown;
 use crate::data::xex::WORLD_OPENED_FLAGS;
 use crate::data::xex::WORLD_SIGNS_FLAGS;
 use crate::enums::*;
+use assets::Asset;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use data::db360::ASSETS;
+use data::levels::LEVELS_INFO;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Read;
@@ -23,23 +25,23 @@ mod strings;
 mod utils;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open("db360.cmp")?;
+    let mut file = OpenOptions::new().read(true).open("db360.cmp")?;
 
     let entry_count = file.read_u32::<BigEndian>()?;
     assert_eq!(entry_count, 3701);
     let padding = file.read_u32::<BigEndian>()?;
 
     let mut sizes = vec![];
+    let mut flags = vec![];
 
     let mut curr_offset = file.read_u32::<BigEndian>()?;
-    let _ = file.read_u32::<BigEndian>()?;
+    let flag = file.read_u32::<BigEndian>()?;
+    flags.push(flag);
 
     for _ in 1..entry_count {
         let offset = file.read_u32::<BigEndian>()?;
-        let _ = file.read_u32::<BigEndian>()?;
+        let flag = file.read_u32::<BigEndian>()?;
+        flags.push(flag);
 
         sizes.push((offset - curr_offset) as usize);
         curr_offset = offset;
@@ -50,20 +52,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(sizes.len(), entry_count as usize);
 
+    let mut loaded_assets = vec![];
+
     // parse all (known) assets to check the readers
     for (id, asset) in ASSETS.iter().enumerate() {
         let pos = file.seek(std::io::SeekFrom::Current(0))?;
 
         match asset {
-            AssetId::Empty => {}
+            AssetId::Empty => {
+                loaded_assets.push(Asset::Empty);
+            }
             AssetId::Animation(animation_id) => {
-                Unknown::new(&mut file, sizes[id])?;
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::Midi(midi_id) => {
-                Unknown::new(&mut file, sizes[id])?;
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::Model(model_id) => {
-                Unknown::new(&mut file, sizes[id])?;
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::MapSetup(map_setup_id) => {
                 let mut map = MapSetup::new(&mut file)?;
@@ -78,57 +87,173 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     o.category =
                                         Category::WarpOrTrigger(WarpOrTriggerId::FpEnterLevel);
                                 }
-
-                                if let Category::Actor(ActorId::WorldSign) = o.category {
-                                    o.selector_or_radius = 5;
-                                }
                             }
                         }
-
-                        file.seek(std::io::SeekFrom::Start(pos))?;
-                        map.write(&mut file)?;
                     }
                     _ => {}
                 }
+
+                loaded_assets.push(Asset::MapSetup(map));
             }
             AssetId::Dialogue(dialogue_id) => {
-                Dialogue::new(&mut file)?;
+                let data = Dialogue::new(&mut file)?;
+                loaded_assets.push(Asset::Dialogue(data));
             }
             AssetId::Credits(credits_id) => {
-                Dialogue::new(&mut file)?;
+                let data = Dialogue::new(&mut file)?;
+                loaded_assets.push(Asset::Dialogue(data));
             }
             AssetId::Sprite(sprite_id) => {
-                Unknown::new(&mut file, sizes[id])?;
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::Question(question_id) => {
-                Question::new(&mut file)?;
+                let data = Question::new(&mut file)?;
+                loaded_assets.push(Asset::Question(data));
             }
             AssetId::Unknown(unknown_id) => {
-                Unknown::new(&mut file, sizes[id])?;
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::Xbox(xbox_id) => {
-                Dialogue::new(&mut file)?;
+                let data = Dialogue::new(&mut file)?;
+                loaded_assets.push(Asset::Dialogue(data));
             }
         }
 
+        let mut padding = 0;
         // for some reason, some files are aligned on 8 bytes and some aren't
         while let Ok(byte) = file.read_u8() {
             if byte != 0xCD {
                 break;
             }
+            padding += 1;
         }
 
         file.seek_relative(-1);
     }
 
+    assert_eq!(entry_count as usize, loaded_assets.len());
+
+    let mut patched = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open("db360.cmp.patched")?;
+
+    patched.write_u32::<BigEndian>(entry_count)?;
+    for _ in 0..entry_count {
+        patched.write_u32::<BigEndian>(0)?;
+        patched.write_u32::<BigEndian>(0)?;
+    }
+
+    let mut offsets = vec![];
+    let mut header = file.seek(std::io::SeekFrom::Current(0))?;
+
+    for i in 0..entry_count {
+        let mut current_offset = file.seek(std::io::SeekFrom::Current(0))? - header;
+        offsets.push(current_offset);
+
+        match &loaded_assets[i as usize] {
+            Asset::Animation(animation) => {
+                animation.write(&mut file)?;
+            }
+            Asset::Dialogue(dialogue) => {
+                dialogue.write(&mut patched)?;
+            }
+            Asset::MapSetup(map_setup) => {
+                map_setup.write(&mut patched)?;
+            }
+            Asset::Question(question) => {
+                question.write(&mut patched)?;
+            }
+            Asset::Unknown(unknown) => {
+                unknown.write(&mut patched)?;
+            }
+            Asset::Empty => {}
+        }
+    }
+
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
-        .open("default.xex")?;
-    file.seek(std::io::SeekFrom::Start(WORLD_OPENED_FLAGS + 4 * 4))?;
-    file.write_u32::<BigEndian>(0x00690002)?;
-    file.seek(std::io::SeekFrom::Start(WORLD_SIGNS_FLAGS + 4 * 2))?;
-    file.write_u16::<BigEndian>(0x0031)?;
+        .open("db360.textures.cmp")?;
+
+    let entry_count = file.read_u32::<BigEndian>()?;
+    let metadata_size = 20;
+
+    let mut fp_pos = vec![];
+    for i in [
+        TextureId::FpPainting00,
+        TextureId::FpPainting10,
+        TextureId::FpPainting20,
+        TextureId::FpPainting30,
+        TextureId::FpPainting01,
+        TextureId::FpPainting11,
+        TextureId::FpPainting21,
+        TextureId::FpPainting31,
+        TextureId::FpPainting02,
+        TextureId::FpPainting12,
+        TextureId::FpPainting22,
+        TextureId::FpPainting32,
+        TextureId::FpPainting03,
+        TextureId::FpPainting13,
+        TextureId::FpPainting23,
+        TextureId::FpPainting33,
+    ] {
+        file.seek(std::io::SeekFrom::Start(i as u64 * metadata_size + 4))?;
+        let position = file.read_u32::<BigEndian>()?;
+        fp_pos.push(position);
+    }
+
+    let mut index = 0;
+    for i in [
+        TextureId::MmPainting00,
+        TextureId::MmPainting10,
+        TextureId::MmPainting20,
+        TextureId::MmPainting30,
+        TextureId::MmPainting01,
+        TextureId::MmPainting11,
+        TextureId::MmPainting21,
+        TextureId::MmPainting31,
+        TextureId::MmPainting02,
+        TextureId::MmPainting12,
+        TextureId::MmPainting22,
+        TextureId::MmPainting32,
+        TextureId::MmPainting03,
+        TextureId::MmPainting13,
+        TextureId::MmPainting23,
+        TextureId::MmPainting33,
+    ] {
+        file.seek(std::io::SeekFrom::Start(i as u64 * metadata_size + 4))?;
+        file.write_u32::<BigEndian>(fp_pos[index])?;
+        index += 1;
+    }
+
+    let fp_sign_left = LEVELS_INFO[4].sign_left as u64;
+    file.seek(std::io::SeekFrom::Start(fp_sign_left * metadata_size + 4))?;
+    let address = file.read_u32::<BigEndian>()?;
+
+    let mm_sign_left = LEVELS_INFO[0].sign_left as u64;
+    file.seek(std::io::SeekFrom::Start(mm_sign_left * metadata_size + 4))?;
+    file.write_u32::<BigEndian>(address)?;
+
+    let fp_sign_right = LEVELS_INFO[4].sign_right as u64;
+    file.seek(std::io::SeekFrom::Start(fp_sign_right * metadata_size + 4))?;
+    let address = file.read_u32::<BigEndian>()?;
+
+    let mm_sign_right = LEVELS_INFO[0].sign_right as u64;
+    file.seek(std::io::SeekFrom::Start(mm_sign_right * metadata_size + 4))?;
+    file.write_u32::<BigEndian>(address)?;
+
+    for id in 0..4 {
+        let fp_label = LEVELS_INFO[4].label[id] as u64;
+        file.seek(std::io::SeekFrom::Start(fp_label * metadata_size + 4))?;
+        let address = file.read_u32::<BigEndian>()?;
+
+        let mm_label = LEVELS_INFO[0].label[id] as u64;
+        file.seek(std::io::SeekFrom::Start(mm_label * metadata_size + 4))?;
+        file.write_u32::<BigEndian>(address)?;
+    }
 
     Ok(())
 }

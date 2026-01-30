@@ -7,6 +7,7 @@ pub use self::midis::MidiId;
 pub use self::models::ModelId;
 pub use self::questions::QuestionId;
 pub use self::sprites::SpriteId;
+pub use self::textures::TextureId;
 pub use self::warp_or_trigger::WarpOrTriggerId;
 pub use self::xbox::XboxId;
 use crate::enum_builder;
@@ -84,6 +85,7 @@ pub mod midis;
 pub mod models;
 pub mod questions;
 pub mod sprites;
+pub mod textures;
 pub mod warp_or_trigger;
 pub mod xbox;
 
@@ -99,6 +101,49 @@ pub enum AssetId {
     Sprite(SpriteId),
     Unknown(UnknownId),
     Xbox(XboxId),
+}
+
+// flags for db360.cmp
+impl AssetId {
+    fn flags(&self) -> u32 {
+        match self {
+            AssetId::Animation(_) => 3,
+            AssetId::Credits(_) => 3,
+            AssetId::Dialogue(_) => 3,
+            AssetId::Empty => 4,
+            AssetId::MapSetup(_) => 3,
+            AssetId::Midi(_) => 3,
+            AssetId::Model(_) => 0,
+            AssetId::Question(_) => 3,
+            AssetId::Sprite(_) => 1,
+            AssetId::Unknown(id) => {
+                if *id == UnknownId::Unknown011EA54B {
+                    4
+                } else {
+                    3
+                }
+            }
+            AssetId::Xbox(_) => 3,
+        }
+    }
+}
+
+impl std::fmt::Display for AssetId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssetId::Animation(animation_id) => write!(f, "Animation"),
+            AssetId::Credits(credits_id) => write!(f, "Credits"),
+            AssetId::Dialogue(dialogue_id) => write!(f, "Dialogue"),
+            AssetId::Empty => write!(f, "Empty"),
+            AssetId::MapSetup(map_setup_id) => write!(f, "MapSetup"),
+            AssetId::Midi(midi_id) => write!(f, "Midi"),
+            AssetId::Model(model_id) => write!(f, "Model"),
+            AssetId::Question(question_id) => write!(f, "Question"),
+            AssetId::Sprite(sprite_id) => write!(f, "Sprite"),
+            AssetId::Unknown(unknown_id) => write!(f, "Unknown"),
+            AssetId::Xbox(xbox_id) => write!(f, "Xbox"),
+        }
+    }
 }
 
 enum_builder! {

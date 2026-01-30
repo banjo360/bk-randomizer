@@ -4,6 +4,7 @@ use byteorder::ReadBytesExt;
 use std::error::Error;
 use std::io::Read;
 use std::io::Seek;
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct QuestionData {
@@ -35,6 +36,10 @@ impl Question {
 
         Ok(Self {})
     }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 impl QuestionData {
@@ -63,5 +68,9 @@ impl QuestionData {
             answer_2,
             answer_3,
         })
+    }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        Ok(())
     }
 }

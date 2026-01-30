@@ -1,5 +1,20 @@
+use animation::Animation;
+use dialogue::Dialogue;
+use map_setup::MapSetup;
+use question::Question;
+use unknown::Unknown;
+
 pub mod animation;
 pub mod dialogue;
 pub mod map_setup;
 pub mod question;
 pub mod unknown;
+
+pub enum Asset {
+    Animation(Animation),
+    Dialogue(Dialogue),
+    MapSetup(MapSetup),
+    Question(Question),
+    Unknown(Unknown),
+    Empty,
+}

@@ -3,10 +3,12 @@ use crate::utils::read_string;
 use byteorder::BigEndian;
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
+use byteorder::WriteBytesExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
 use std::io::Seek;
+use std::io::Write;
 
 use crate::enums::Language;
 
@@ -169,6 +171,11 @@ impl Dialogue {
 
         Ok(Self { scripts })
     }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        writer.write_u32::<BigEndian>(self.scripts.len() as u32)?;
+        Ok(())
+    }
 }
 
 impl DialogueCommand {
@@ -225,5 +232,9 @@ impl DialogueCommand {
             }
             _ => panic!("todo: command {command_id:X} ({command_id})"),
         })
+    }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        Ok(())
     }
 }
