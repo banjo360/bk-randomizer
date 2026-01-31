@@ -1,5 +1,6 @@
 use crate::enum_builder;
 use crate::utils::read_string;
+use crate::utils::write_string;
 use byteorder::BigEndian;
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
@@ -123,13 +124,29 @@ pub enum DialogueCommand {
     Speak(Speaker, String),
 }
 
+impl DialogueCommand {
+    fn id(&self) -> u8 {
+        match self {
+            DialogueCommand::MrVileCheck => 1,
+            DialogueCommand::BottlesCheck => 2,
+            DialogueCommand::BoggyAndThirdCheatCheck => 3,
+            DialogueCommand::EndOfSection => 4,
+            DialogueCommand::SwitchBox => 6,
+            DialogueCommand::Trigger(_) => 7,
+            DialogueCommand::Selection(_) => 8,
+            DialogueCommand::ItemCount => 9,
+            DialogueCommand::Speak(speaker, _) => (*speaker).into(),
+        }
+    }
+}
+
 pub struct DialogueData {
     pub top: Vec<DialogueCommand>,
     pub bottom: Vec<DialogueCommand>,
 }
 
 pub struct Dialogue {
-    pub scripts: HashMap<Language, DialogueData>,
+    pub translations: HashMap<Language, DialogueData>,
 }
 
 impl Dialogue {
@@ -137,7 +154,7 @@ impl Dialogue {
         let languages = reader.read_u8()?;
         assert_eq!(languages, 4);
 
-        let mut scripts = HashMap::new();
+        let mut translations = HashMap::new();
 
         for _ in 0..languages {
             // offsets
@@ -160,7 +177,7 @@ impl Dialogue {
                 tops.push(command);
             }
 
-            scripts.insert(
+            translations.insert(
                 lang.into(),
                 DialogueData {
                     top: tops,
@@ -169,11 +186,30 @@ impl Dialogue {
             );
         }
 
-        Ok(Self { scripts })
+        Ok(Self { translations })
     }
 
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
-        writer.write_u32::<BigEndian>(self.scripts.len() as u32)?;
+        writer.write_u32::<BigEndian>(self.translations.len() as u32)?;
+
+        for _ in 0..self.translations.len() {
+            writer.write_u16::<LittleEndian>(0)?;
+        }
+
+        for lang in 0..4 {
+            let data = &self.translations[&lang.into()];
+
+            writer.write_u8(data.bottom.len() as u8)?;
+            for b in &data.bottom {
+                b.write(writer)?;
+            }
+
+            writer.write_u8(data.top.len() as u8)?;
+            for t in &data.top {
+                t.write(writer)?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -235,6 +271,28 @@ impl DialogueCommand {
     }
 
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        writer.write_u8(self.id())?;
+        match self {
+            DialogueCommand::MrVileCheck
+            | DialogueCommand::BottlesCheck
+            | DialogueCommand::BoggyAndThirdCheatCheck
+            | DialogueCommand::EndOfSection
+            | DialogueCommand::SwitchBox
+            | DialogueCommand::ItemCount => {
+                write_string(writer, "")?;
+            }
+            DialogueCommand::Trigger(value) => {
+                writer.write_u8(2)?;
+                writer.write_u8(*value)?;
+                writer.write_u8(0)?;
+            }
+            DialogueCommand::Selection(text) => {
+                write_string(writer, text)?;
+            }
+            DialogueCommand::Speak(_, text) => {
+                write_string(writer, text)?;
+            }
+        }
         Ok(())
     }
 }

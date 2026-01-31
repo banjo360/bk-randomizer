@@ -135,7 +135,7 @@ macro_rules! enum_builder {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
                     $($name::$arm => write!(f, "{}", stringify!($arm)) ,)*
-                    $name::Unknown(v) => write!(f, "Unknown({v})"),
+                    $name::Unknown(v) => write!(f, "Unknown({v}, {v:X})"),
                 }
             }
         }
@@ -171,11 +171,58 @@ pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Err
     reader.read(&mut buffer)?;
     assert_eq!(reader.read_u8()?, 0);
 
-    let s = convert_banjo_string(buffer);
+    let s = convert_from_banjo_string(buffer);
     Ok(s)
 }
 
-pub fn convert_banjo_string(buffer: Vec<u8>) -> String {
+pub fn write_string<W: Write>(writer: &mut W, string: &str) -> Result<(), Box<dyn Error>> {
+    let buffer = convert_to_banjo_string(string);
+    writer.write_u8(buffer.len() as u8)?;
+    if buffer.len() > 0 {
+        writer.write(&buffer)?;
+    }
+    writer.write_u8(0)?;
+
+    Ok(())
+}
+
+pub fn convert_to_banjo_string(string: &str) -> Vec<u8> {
+    let mut buffer = vec![0xFD, 0x6A];
+    let mut mapping = JAPANESE_CHARACTERS;
+
+    for c in string.chars() {
+        if c != '⸾' && c != '⸽' {
+            if let Some(index) = JAPANESE_CHARACTERS.iter().position(|k| *k == c) {
+                // maybe JP
+            } else {
+                // definitely not JP
+                mapping = CHARACTERS;
+                buffer.clear();
+                break;
+            }
+        }
+    }
+
+    for c in string.chars() {
+        if c == '⸾' {
+            buffer.push(0xFD);
+            buffer.push(0x68);
+        } else if c == '⸽' {
+            buffer.push(0xFD);
+            buffer.push(0x6C);
+        } else {
+            if let Some(index) = mapping.iter().position(|k| *k == c) {
+                buffer.push(index as u8);
+            } else {
+                unreachable!();
+            }
+        }
+    }
+
+    buffer
+}
+
+pub fn convert_from_banjo_string(buffer: Vec<u8>) -> String {
     let mut index = 0;
     let mut japanese = false;
     let mut target_buffer = vec![];
@@ -189,55 +236,23 @@ pub fn convert_banjo_string(buffer: Vec<u8>) -> String {
             index += 1;
 
             match code {
-                0x68 => { /*wiggle start?*/ }
+                0x68 => {
+                    /*wiggle start?*/
+                    target_buffer.push('⸾');
+                }
                 0x6A => japanese = true,
-                0x6C => { /*wiggle stop?*/ }
+                0x6C => {
+                    /*wiggle stop?*/
+                    target_buffer.push('⸽');
+                }
                 _ => panic!("Unknown control character {code:X}"),
             }
         } else if japanese {
             let target = JAPANESE_CHARACTERS[c as usize];
-            if target == '_' {
-                // panic!("{b:X} / {b} is unknown.");
-            }
             target_buffer.push(target);
         } else {
-            let target = match c {
-                b'A'..=b'Z' => c as char,
-                b'0'..=b'9' => c as char,
-                b'a' => 'Ç',
-                b'b' => 'É',
-                b'c' => 'È',
-                b'd' => 'Ê',
-                b'e' => 'Ë',
-                b'f' => 'Î',
-                b'g' => 'Ï',
-                b'h' => 'Ô',
-                b'i' => 'Û',
-                b'k' => 'Ù',
-                b'`' => 'Â',
-                b'_' => 'À',
-                b']' => 'Ü',
-                b'\\' => 'Ö', // for dialogues. unknown for X360_strings.dat
-                b'[' => 'Ä',
-                b'^' => 'ß', // unknown (random letter for now)
-                b'\'' => '\'',
-                b' ' => ' ',
-                b'!' => '!',
-                b'.' => '.',
-                b',' => ',',
-                b'?' => '?',
-                b'-' => '-',
-                b':' => ':',
-                b';' => ';',
-                b'&' => '&',
-                b'(' => '(',
-                b')' => ')',
-                b'/' => '/',
-                b'+' => '+',
-                b'<' => '©',
-                b'~' => '~', // placeholder
-                _ => panic!("char {c} / {c:X} / {} unknown", c as char),
-            };
+            let target = CHARACTERS[c as usize];
+            assert_ne!(target, '_');
             target_buffer.push(target);
         }
     }
@@ -260,6 +275,26 @@ pub fn convert_iso_8859_1(buffer: Vec<u8>) -> String {
         })
         .collect::<String>()
 }
+
+#[rustfmt::skip]
+const CHARACTERS: [char; 256] = [
+/* 00 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* 10 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* 20 */ ' ', '!', '_', '_', '_', '_', '&', '\'', '(', ')', '_', '+', ',', '-', '.', '/',
+/* 30 */ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '©', '_', '_', '?',
+/* 40 */ '_', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+/* 50 */ 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ä', 'Ö', 'Ü', 'ß', 'À', // ß is random for now
+/* 60 */ 'Â', 'Ç', 'É', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Û', '_', 'Ù', '_', '_', '_', '_',
+/* 70 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '~', '_',
+/* 80 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* 90 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* A0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* B0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* C0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* D0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* E0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+/* F0 */ '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_',
+];
 
 #[rustfmt::skip]
 const JAPANESE_CHARACTERS: [char; 256] = [

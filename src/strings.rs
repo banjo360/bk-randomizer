@@ -1,6 +1,7 @@
 use crate::enums::Language;
-use crate::utils::convert_banjo_string;
+use crate::utils::convert_from_banjo_string;
 use crate::utils::convert_iso_8859_1;
+use crate::utils::convert_to_banjo_string;
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use std::collections::HashMap;
@@ -56,9 +57,18 @@ impl Strings {
                     0 => String::from_utf8(buffer)?,
                     1 => {
                         if IS_BANJO_STRING[str_id] {
-                            convert_banjo_string(buffer)
+                            convert_from_banjo_string(buffer)
                         } else {
                             convert_iso_8859_1(buffer)
+                        }
+                    }
+                    2 => "".into(),
+                    3 => {
+                        if IS_BANJO_STRING[str_id] {
+                            convert_from_banjo_string(buffer)
+                        } else {
+                            println!("{str_id}: {buffer:?}");
+                            todo!()
                         }
                     }
                     _ => todo!(),
