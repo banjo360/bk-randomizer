@@ -15,6 +15,7 @@ use crate::enum_builder;
 enum_builder! {
     #[repr(u16)]
     pub enum UnknownId {
+        Unknown0064D898 = 1770,
         Unknown00702780 = 2212,
         Unknown00703D04 = 2213,
         Unknown00705390 = 2214,

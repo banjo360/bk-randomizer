@@ -3,6 +3,7 @@ use crate::assets::dialogue::Dialogue;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::question::Question;
+use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
 use crate::data::xex::WORLD_OPENED_FLAGS;
 use crate::data::xex::WORLD_SIGNS_FLAGS;
@@ -105,8 +106,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 loaded_assets.push(Asset::Dialogue(data));
             }
             AssetId::Sprite(sprite_id) => {
-                let data = Unknown::new(&mut file, sizes[id])?;
-                loaded_assets.push(Asset::Unknown(data));
+                match sprite_id {
+                    // these sprites have a "strange" format (closer to N64 or something else)
+                    SpriteId::Sprite0064D520
+                    | SpriteId::Sprite0064E8D8
+                    | SpriteId::Sprite0064EB58
+                    | SpriteId::Sprite006536C8
+                    | SpriteId::Sprite006546D8
+                    | SpriteId::Sprite0064ECC8 => {
+                        let data = Unknown::new(&mut file, sizes[id])?;
+                        loaded_assets.push(Asset::Unknown(data));
+                    }
+                    _ => {
+                        let data = Sprite::new(&mut file)?;
+                        loaded_assets.push(Asset::Sprite(data));
+                    }
+                }
             }
             AssetId::Question(question_id) => {
                 let data = Question::new(&mut file)?;
@@ -169,6 +184,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             Asset::Question(question) => {
                 question.write(&mut patched)?;
             }
+            Asset::Sprite(sprite) => {
+                sprite.write(&mut patched)?;
+            }
             Asset::Unknown(unknown) => {
                 unknown.write(&mut patched)?;
             }
@@ -191,49 +209,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let metadata_size = 20;
 
     let mut fp_pos = vec![];
-    for i in [
-        TextureId::FpPainting00,
-        TextureId::FpPainting10,
-        TextureId::FpPainting20,
-        TextureId::FpPainting30,
-        TextureId::FpPainting01,
-        TextureId::FpPainting11,
-        TextureId::FpPainting21,
-        TextureId::FpPainting31,
-        TextureId::FpPainting02,
-        TextureId::FpPainting12,
-        TextureId::FpPainting22,
-        TextureId::FpPainting32,
-        TextureId::FpPainting03,
-        TextureId::FpPainting13,
-        TextureId::FpPainting23,
-        TextureId::FpPainting33,
-    ] {
-        file.seek(std::io::SeekFrom::Start(i as u64 * metadata_size + 4))?;
+    for i in &LEVELS_INFO[4].painting {
+        file.seek(std::io::SeekFrom::Start(*i as u64 * metadata_size + 4))?;
         let position = file.read_u32::<BigEndian>()?;
         fp_pos.push(position);
     }
 
     let mut index = 0;
-    for i in [
-        TextureId::MmPainting00,
-        TextureId::MmPainting10,
-        TextureId::MmPainting20,
-        TextureId::MmPainting30,
-        TextureId::MmPainting01,
-        TextureId::MmPainting11,
-        TextureId::MmPainting21,
-        TextureId::MmPainting31,
-        TextureId::MmPainting02,
-        TextureId::MmPainting12,
-        TextureId::MmPainting22,
-        TextureId::MmPainting32,
-        TextureId::MmPainting03,
-        TextureId::MmPainting13,
-        TextureId::MmPainting23,
-        TextureId::MmPainting33,
-    ] {
-        file.seek(std::io::SeekFrom::Start(i as u64 * metadata_size + 4))?;
+    for i in &LEVELS_INFO[0].painting {
+        file.seek(std::io::SeekFrom::Start(*i as u64 * metadata_size + 4))?;
         file.write_u32::<BigEndian>(fp_pos[index])?;
         index += 1;
     }

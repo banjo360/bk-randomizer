@@ -75,7 +75,7 @@ enum_builder! {
         Sprite0064D338 = 1766,
         Sprite0064D368 = 1767,
         Sprite0064D520 = 1769,
-        Sprite0064D898 = 1770,
+        // Sprite0064D898 = 1770,
         Sprite0064E8D8 = 1771,
         Sprite0064EB58 = 1772,
         Sprite0064ECC8 = 1773,
