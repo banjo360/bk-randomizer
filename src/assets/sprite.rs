@@ -3,7 +3,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 pub struct Sprite {
@@ -17,7 +16,7 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let frame_count = reader.read_u16::<BigEndian>()?;
         let format = reader.read_u16::<BigEndian>()?;
         assert_eq!(format, 0x1000);

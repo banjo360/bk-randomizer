@@ -2,13 +2,13 @@ use crate::Language;
 use crate::utils::read_string;
 use crate::utils::write_string;
 use byteorder::BigEndian;
-use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
 use std::io::Seek;
+use std::io::SeekFrom;
 use std::io::Write;
 
 #[derive(Debug)]
@@ -25,17 +25,17 @@ pub struct Question {
 }
 
 impl Question {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let languages = reader.read_u8()?;
         assert_eq!(languages, 4);
 
-        let kind = reader.read_u16::<LittleEndian>()?;
+        let kind = reader.read_u16::<BigEndian>()?;
         // 0201 = Question
         // 0003 = Grunty Quiz
 
         // offsets
         for _ in 0..languages {
-            reader.read_u16::<LittleEndian>()?;
+            reader.read_u16::<BigEndian>()?;
         }
 
         let mut translations = HashMap::new();
@@ -46,20 +46,39 @@ impl Question {
         Ok(Self { kind, translations })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+    pub fn write<W: Write + Seek>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
         writer.write_u8(self.translations.len() as u8)?;
         writer.write_u16::<BigEndian>(self.kind)?;
 
-        for lang in 0..4 {
+        let offsets_position = writer.seek(SeekFrom::Current(0))?;
+
+        for _ in 0..self.translations.len() {
+            writer.write_u16::<BigEndian>(0)?;
+        }
+
+        let mut offsets = vec![];
+        let header_offset = writer.seek(SeekFrom::Current(0))?;
+        for lang in 0..(self.translations.len() as u8) {
+            let offset = (writer.seek(SeekFrom::Current(0))? - header_offset) as u16;
+            offsets.push(offset);
             self.translations[&lang.into()].write(writer)?;
         }
+
+        let end_of_file = writer.seek(SeekFrom::Current(0))?;
+
+        writer.seek(SeekFrom::Start(offsets_position))?;
+        for offset in offsets {
+            writer.write_u16::<BigEndian>(offset)?;
+        }
+
+        writer.seek(SeekFrom::Start(end_of_file))?;
 
         Ok(())
     }
 }
 
 impl QuestionData {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let count = reader.read_u8()?;
 
         let mut question = vec![];

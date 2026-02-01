@@ -3,8 +3,8 @@ use super::Prop2;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
+use std::io::Read;
 use std::io::Write;
-use std::io::{Read, Seek};
 
 pub struct Cube {
     pub x: i32,
@@ -16,7 +16,7 @@ pub struct Cube {
 }
 
 impl Cube {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let id = reader.read_u8()?;
         Ok(match id {
             1 => Self {

@@ -2,13 +2,13 @@ use crate::enum_builder;
 use crate::utils::read_string;
 use crate::utils::write_string;
 use byteorder::BigEndian;
-use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
 use std::io::Seek;
+use std::io::SeekFrom;
 use std::io::Write;
 
 use crate::enums::Language;
@@ -150,7 +150,7 @@ pub struct Dialogue {
 }
 
 impl Dialogue {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let languages = reader.read_u8()?;
         assert_eq!(languages, 4);
 
@@ -158,7 +158,7 @@ impl Dialogue {
 
         for _ in 0..languages {
             // offsets
-            reader.read_u16::<LittleEndian>()?;
+            reader.read_u16::<BigEndian>()?;
         }
 
         for lang in 0..languages {
@@ -189,14 +189,21 @@ impl Dialogue {
         Ok(Self { translations })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+    pub fn write<W: Write + Seek>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
         writer.write_u32::<BigEndian>(self.translations.len() as u32)?;
 
+        let offsets_position = writer.seek(SeekFrom::Current(0))?;
+
         for _ in 0..self.translations.len() {
-            writer.write_u16::<LittleEndian>(0)?;
+            writer.write_u16::<BigEndian>(0)?;
         }
 
-        for lang in 0..4 {
+        let mut offsets = vec![];
+        let header_offset = writer.seek(SeekFrom::Current(0))?;
+        for lang in 0..(self.translations.len() as u8) {
+            let offset = (writer.seek(SeekFrom::Current(0))? - header_offset) as u16;
+            offsets.push(offset);
+
             let data = &self.translations[&lang.into()];
 
             writer.write_u8(data.bottom.len() as u8)?;
@@ -210,12 +217,21 @@ impl Dialogue {
             }
         }
 
+        let end_of_file = writer.seek(SeekFrom::Current(0))?;
+
+        writer.seek(SeekFrom::Start(offsets_position))?;
+        for offset in offsets {
+            writer.write_u16::<BigEndian>(offset)?;
+        }
+
+        writer.seek(SeekFrom::Start(end_of_file))?;
+
         Ok(())
     }
 }
 
 impl DialogueCommand {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let command_id = reader.read_u8()?;
 
         Ok(match command_id {

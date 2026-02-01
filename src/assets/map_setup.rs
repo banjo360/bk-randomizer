@@ -4,7 +4,6 @@ use byteorder::WriteBytesExt;
 use std::cmp;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 mod camera;
@@ -26,7 +25,7 @@ pub struct MapSetup {
 }
 
 impl MapSetup {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let header = reader.read_u16::<BigEndian>()?;
         assert_eq!(header, 0x0101);
         let negative_x_cube_count = reader.read_i32::<BigEndian>()?;

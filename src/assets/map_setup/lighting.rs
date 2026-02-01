@@ -4,7 +4,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 pub struct Lighting {
@@ -16,7 +15,7 @@ pub struct Lighting {
 }
 
 impl Lighting {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let section_id = reader.read_u8()?;
         assert_eq!(section_id, 2);
         let position = read_3_floats(reader)?;

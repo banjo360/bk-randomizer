@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::enums::Language;
 use crate::utils::convert_from_banjo_string;
 use crate::utils::convert_iso_8859_1;

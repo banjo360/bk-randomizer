@@ -6,7 +6,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 #[repr(u8)]
@@ -65,7 +64,7 @@ pub struct Prop1 {
 }
 
 impl Prop1 {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let position = read_3_i16(reader)?;
         let bitfield_06 = reader.read_u16::<BigEndian>()?;
         let actor_id = reader.read_u16::<BigEndian>()?;

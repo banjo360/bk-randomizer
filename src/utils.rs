@@ -1,9 +1,10 @@
+#![allow(unused)]
+
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
@@ -19,47 +20,47 @@ pub struct Vector2<T> {
     pub y: T,
 }
 
-pub fn read_2_floats<R: Read + Seek>(reader: &mut R) -> Result<Vector2<f32>, Box<dyn Error>> {
+pub fn read_2_floats<R: Read>(reader: &mut R) -> Result<Vector2<f32>, Box<dyn Error>> {
     let x = reader.read_f32::<BigEndian>()?;
     let y = reader.read_f32::<BigEndian>()?;
     Ok(Vector2 { x, y })
 }
 
-pub fn read_3_floats<R: Read + Seek>(reader: &mut R) -> Result<Vector3<f32>, Box<dyn Error>> {
+pub fn read_3_floats<R: Read>(reader: &mut R) -> Result<Vector3<f32>, Box<dyn Error>> {
     let x = reader.read_f32::<BigEndian>()?;
     let y = reader.read_f32::<BigEndian>()?;
     let z = reader.read_f32::<BigEndian>()?;
     Ok(Vector3 { x, y, z })
 }
 
-pub fn read_3_u32<R: Read + Seek>(reader: &mut R) -> Result<Vector3<u32>, Box<dyn Error>> {
+pub fn read_3_u32<R: Read>(reader: &mut R) -> Result<Vector3<u32>, Box<dyn Error>> {
     let x = reader.read_u32::<BigEndian>()?;
     let y = reader.read_u32::<BigEndian>()?;
     let z = reader.read_u32::<BigEndian>()?;
     Ok(Vector3 { x, y, z })
 }
 
-pub fn read_3_i16<R: Read + Seek>(reader: &mut R) -> Result<Vector3<i16>, Box<dyn Error>> {
+pub fn read_3_i16<R: Read>(reader: &mut R) -> Result<Vector3<i16>, Box<dyn Error>> {
     let x = reader.read_i16::<BigEndian>()?;
     let y = reader.read_i16::<BigEndian>()?;
     let z = reader.read_i16::<BigEndian>()?;
     Ok(Vector3 { x, y, z })
 }
 
-pub fn read_3_u16<R: Read + Seek>(reader: &mut R) -> Result<Vector3<u16>, Box<dyn Error>> {
+pub fn read_3_u16<R: Read>(reader: &mut R) -> Result<Vector3<u16>, Box<dyn Error>> {
     let x = reader.read_u16::<BigEndian>()?;
     let y = reader.read_u16::<BigEndian>()?;
     let z = reader.read_u16::<BigEndian>()?;
     Ok(Vector3 { x, y, z })
 }
 
-pub fn read_2_i16<R: Read + Seek>(reader: &mut R) -> Result<Vector2<i16>, Box<dyn Error>> {
+pub fn read_2_i16<R: Read>(reader: &mut R) -> Result<Vector2<i16>, Box<dyn Error>> {
     let x = reader.read_i16::<BigEndian>()?;
     let y = reader.read_i16::<BigEndian>()?;
     Ok(Vector2 { x, y })
 }
 
-pub fn read_3_u8<R: Read + Seek>(reader: &mut R) -> Result<Vector3<u8>, Box<dyn Error>> {
+pub fn read_3_u8<R: Read>(reader: &mut R) -> Result<Vector3<u8>, Box<dyn Error>> {
     let x = reader.read_u8()?;
     let y = reader.read_u8()?;
     let z = reader.read_u8()?;
@@ -142,6 +143,7 @@ macro_rules! enum_builder {
 
         impl From<$typ> for $name {
             fn from(value: $typ) -> Self {
+                #[allow(unreachable_patterns)]
                 match value {
                     $($val => $name::$arm,)*
                     _ => $name::Unknown(value),
@@ -160,7 +162,7 @@ macro_rules! enum_builder {
     };
 }
 
-pub fn read_string<R: Read + Seek>(reader: &mut R) -> Result<String, Box<dyn Error>> {
+pub fn read_string<R: Read>(reader: &mut R) -> Result<String, Box<dyn Error>> {
     let len = reader.read_u8()?;
     if len == 1 {
         assert_eq!(reader.read_u8()?, 0);

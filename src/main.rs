@@ -1,12 +1,10 @@
-#![allow(unused)]
+use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
-use crate::data::xex::WORLD_OPENED_FLAGS;
-use crate::data::xex::WORLD_SIGNS_FLAGS;
 use crate::enums::*;
 use assets::Asset;
 use byteorder::BigEndian;
@@ -16,9 +14,7 @@ use data::db360::ASSETS;
 use data::levels::LEVELS_INFO;
 use std::error::Error;
 use std::fs::OpenOptions;
-use std::io::Read;
 use std::io::Seek;
-use std::io::Write;
 
 mod assets;
 mod data;
@@ -31,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let entry_count = file.read_u32::<BigEndian>()?;
     assert_eq!(entry_count, 3701);
-    let padding = file.read_u32::<BigEndian>()?;
+    let _padding = file.read_u32::<BigEndian>()?;
 
     let mut sizes = vec![];
     let mut flags = vec![];
@@ -58,21 +54,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // parse all (known) assets to check the readers
     for (id, asset) in ASSETS.iter().enumerate() {
-        let pos = file.seek(std::io::SeekFrom::Current(0))?;
+        let _pos = file.seek(std::io::SeekFrom::Current(0))?;
 
         match asset {
             AssetId::Empty => {
                 loaded_assets.push(Asset::Empty);
             }
-            AssetId::Animation(animation_id) => {
+            AssetId::Animation(_animation_id) => {
+                let data = Animation::new(&mut file)?;
+                loaded_assets.push(Asset::Animation(data));
+            }
+            AssetId::Midi(_midi_id) => {
                 let data = Unknown::new(&mut file, sizes[id])?;
                 loaded_assets.push(Asset::Unknown(data));
             }
-            AssetId::Midi(midi_id) => {
-                let data = Unknown::new(&mut file, sizes[id])?;
-                loaded_assets.push(Asset::Unknown(data));
-            }
-            AssetId::Model(model_id) => {
+            AssetId::Model(_model_id) => {
                 let data = Unknown::new(&mut file, sizes[id])?;
                 loaded_assets.push(Asset::Unknown(data));
             }
@@ -97,11 +93,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 loaded_assets.push(Asset::MapSetup(map));
             }
-            AssetId::Dialogue(dialogue_id) => {
+            AssetId::Dialogue(_dialogue_id) => {
                 let data = Dialogue::new(&mut file)?;
                 loaded_assets.push(Asset::Dialogue(data));
             }
-            AssetId::Credits(credits_id) => {
+            AssetId::Credits(_credits_id) => {
                 let data = Dialogue::new(&mut file)?;
                 loaded_assets.push(Asset::Dialogue(data));
             }
@@ -123,30 +119,28 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
-            AssetId::Question(question_id) => {
+            AssetId::Question(_question_id) => {
                 let data = Question::new(&mut file)?;
                 loaded_assets.push(Asset::Question(data));
             }
-            AssetId::Unknown(unknown_id) => {
+            AssetId::Unknown(_unknown_id) => {
                 let data = Unknown::new(&mut file, sizes[id])?;
                 loaded_assets.push(Asset::Unknown(data));
             }
-            AssetId::Xbox(xbox_id) => {
+            AssetId::Xbox(_xbox_id) => {
                 let data = Dialogue::new(&mut file)?;
                 loaded_assets.push(Asset::Dialogue(data));
             }
         }
 
-        let mut padding = 0;
         // for some reason, some files are aligned on 8 bytes and some aren't
         while let Ok(byte) = file.read_u8() {
             if byte != 0xCD {
                 break;
             }
-            padding += 1;
         }
 
-        file.seek_relative(-1);
+        file.seek_relative(-1)?;
     }
 
     assert_eq!(entry_count as usize, loaded_assets.len());
@@ -165,15 +159,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut offsets = vec![];
-    let mut header = patched.seek(std::io::SeekFrom::Current(0))?;
+    let header = patched.seek(std::io::SeekFrom::Current(0))?;
 
     for i in 0..entry_count {
-        let mut current_offset = patched.seek(std::io::SeekFrom::Current(0))? - header;
+        let current_offset = patched.seek(std::io::SeekFrom::Current(0))? - header;
         offsets.push(current_offset as u32);
 
         match &loaded_assets[i as usize] {
             Asset::Animation(animation) => {
-                animation.write(&mut file)?;
+                animation.write(&mut patched)?;
             }
             Asset::Dialogue(dialogue) => {
                 dialogue.write(&mut patched)?;
@@ -195,7 +189,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     patched.seek(std::io::SeekFrom::Start(8))?;
-    for (id, format) in ASSETS.iter().enumerate() {
+    for id in 0..ASSETS.len() {
         patched.write_u32::<BigEndian>(offsets[id])?;
         patched.write_u32::<BigEndian>(flags[id])?;
     }
@@ -205,7 +199,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .write(true)
         .open("db360.textures.cmp")?;
 
-    let entry_count = file.read_u32::<BigEndian>()?;
+    let _entry_count = file.read_u32::<BigEndian>()?;
     let metadata_size = 20;
 
     let mut fp_pos = vec![];

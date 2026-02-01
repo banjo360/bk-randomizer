@@ -14,6 +14,21 @@ use crate::enum_builder;
 
 enum_builder! {
     #[repr(u16)]
+    pub enum Transform {
+        XRotation    = 0,
+        YRotation    = 1,
+        ZRotation    = 2,
+        XScale       = 3,
+        YScale       = 4,
+        ZScale       = 5,
+        XTranslation = 6,
+        YTranslation = 7,
+        ZTranslation = 8,
+    }
+}
+
+enum_builder! {
+    #[repr(u16)]
     pub enum UnknownId {
         Unknown0064D898 = 1770,
         Unknown00702780 = 2212,

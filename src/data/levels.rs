@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::ActorId;
 use crate::MapSetupId;
 use crate::TextureId;

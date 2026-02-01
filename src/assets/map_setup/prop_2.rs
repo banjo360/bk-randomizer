@@ -4,7 +4,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 pub enum Prop2 {
@@ -22,7 +21,7 @@ pub enum Prop2 {
 }
 
 impl Prop2 {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let flags = reader.read_u32::<BigEndian>()?;
         let position = read_3_u16(reader)?;
         let ending = reader.read_u16::<BigEndian>()?;

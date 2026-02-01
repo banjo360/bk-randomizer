@@ -4,7 +4,6 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
-use std::io::Seek;
 use std::io::Write;
 
 pub enum Camera {
@@ -42,7 +41,7 @@ pub enum Camera {
 }
 
 impl Camera {
-    pub fn new<R: Read + Seek>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
+    pub fn new<R: Read>(reader: &mut R) -> Result<Self, Box<dyn Error>> {
         let id = reader.read_u16::<BigEndian>()?;
         let camera_two = reader.read_u8()?;
         assert_eq!(camera_two, 2);
@@ -58,7 +57,7 @@ impl Camera {
         })
     }
 
-    fn read_pivot_or_zoom_camera<R: Read + Seek>(
+    fn read_pivot_or_zoom_camera<R: Read>(
         reader: &mut R,
         camera_type: u8,
         id: u16,
@@ -118,7 +117,7 @@ impl Camera {
         }
     }
 
-    fn read_static_camera<R: Read + Seek>(reader: &mut R, id: u16) -> Result<Self, Box<dyn Error>> {
+    fn read_static_camera<R: Read>(reader: &mut R, id: u16) -> Result<Self, Box<dyn Error>> {
         let section_id = reader.read_u8()?;
         assert_eq!(section_id, 1);
         let position = read_3_floats(reader)?;
@@ -135,7 +134,7 @@ impl Camera {
         })
     }
 
-    fn read_random_camera<R: Read + Seek>(reader: &mut R, id: u16) -> Result<Self, Box<dyn Error>> {
+    fn read_random_camera<R: Read>(reader: &mut R, id: u16) -> Result<Self, Box<dyn Error>> {
         let section_id = reader.read_u8()?;
         assert_eq!(section_id, 1);
         let unk = reader.read_u32::<BigEndian>()?;
