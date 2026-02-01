@@ -1,4 +1,6 @@
 use crate::Transform;
+use crate::utils::fixed_to_float;
+use crate::utils::float_to_fixed;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
@@ -22,7 +24,7 @@ pub struct FrameData {
     unk1: bool,
     unk2: bool,
     frame: u16,
-    factor: u16,
+    factor: f32,
 }
 
 impl Animation {
@@ -45,6 +47,7 @@ impl Animation {
             for _ in 0..data_count {
                 let header = reader.read_u16::<BigEndian>()?;
                 let factor = reader.read_u16::<BigEndian>()?;
+                let factor = fixed_to_float(factor);
 
                 frames.push(FrameData {
                     unk1: (header >> 15) != 0,
@@ -88,8 +91,10 @@ impl Animation {
                     header += 0x4000;
                 }
 
+                let factor = float_to_fixed(frame.factor);
+
                 writer.write_u16::<BigEndian>(header)?;
-                writer.write_u16::<BigEndian>(frame.factor)?;
+                writer.write_u16::<BigEndian>(factor)?;
             }
         }
 

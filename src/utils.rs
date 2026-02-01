@@ -114,6 +114,40 @@ pub fn write_3_u8<W: Write>(writer: &mut W, vec: &Vector3<u8>) -> Result<(), Box
     Ok(())
 }
 
+pub fn fixed_to_float(fixed: u16) -> f32 {
+    let mut float = (fixed >> 6) as f32;
+    let mut decimal = fixed & 0b111111;
+
+    for i in 1..7 {
+        let bit = decimal & 0b100000;
+        if bit != 0 {
+            float += 2f32.powi(-i);
+        }
+
+        decimal <<= 1;
+    }
+
+    let other_way = float_to_fixed(float);
+    assert_eq!(fixed, other_way);
+
+    float
+}
+
+pub fn float_to_fixed(float: f32) -> u16 {
+    let mut fixed = (float as u16) << 6;
+    let mut fract = float.fract();
+
+    for i in 1..7 {
+        let part = 2f32.powi(-i);
+        if fract >= part {
+            fixed += (1 << (6 - i));
+            fract -= part;
+        }
+    }
+
+    fixed
+}
+
 #[macro_export]
 macro_rules! enum_builder {
     (
