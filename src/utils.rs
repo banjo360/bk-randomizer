@@ -5,6 +5,7 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
 use std::io::Read;
+use std::io::Seek;
 use std::io::Write;
 
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
@@ -146,6 +147,22 @@ pub fn float_to_fixed(float: f32) -> u16 {
     }
 
     fixed
+}
+
+pub fn align_reader<R: Read + Seek>(reader: &mut R) -> Result<(), Box<dyn Error>> {
+    let pos = reader.seek(std::io::SeekFrom::Current(0))?;
+    match pos % 8 {
+        0 => {}
+        4 => {
+            reader.read_u32::<BigEndian>()?;
+        }
+        _ => {
+            println!("align_reader: {pos:X} -> {}", pos % 8);
+            unreachable!();
+        }
+    }
+
+    Ok(())
 }
 
 #[macro_export]

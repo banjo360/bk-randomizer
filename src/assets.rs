@@ -1,6 +1,7 @@
 use animation::Animation;
 use dialogue::Dialogue;
 use map_setup::MapSetup;
+use model::Model;
 use question::Question;
 use sprite::Sprite;
 use unknown::Unknown;
@@ -8,6 +9,7 @@ use unknown::Unknown;
 pub mod animation;
 pub mod dialogue;
 pub mod map_setup;
+pub mod model;
 pub mod question;
 pub mod sprite;
 pub mod unknown;
@@ -19,5 +21,6 @@ pub enum Asset {
     Question(Question),
     Unknown(Unknown),
     Sprite(Sprite),
+    Model(Model),
     Empty,
 }

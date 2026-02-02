@@ -2,6 +2,7 @@ use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
+use crate::assets::model::Model;
 use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
@@ -69,8 +70,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 loaded_assets.push(Asset::Unknown(data));
             }
             AssetId::Model(_model_id) => {
-                let data = Unknown::new(&mut file, sizes[id])?;
-                loaded_assets.push(Asset::Unknown(data));
+                let data = Model::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Model(data));
             }
             AssetId::MapSetup(map_setup_id) => {
                 let mut map = MapSetup::new(&mut file)?;
@@ -180,6 +181,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Asset::Sprite(sprite) => {
                 sprite.write(&mut patched)?;
+            }
+            Asset::Model(model) => {
+                model.write(&mut patched)?;
             }
             Asset::Unknown(unknown) => {
                 unknown.write(&mut patched)?;
