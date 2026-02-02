@@ -8,6 +8,8 @@ use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
 use crate::data::db360::ASSETS;
+use crate::data::levels::LEVELS_INFO;
+use crate::data::levels::LevelOrder;
 use crate::enums::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
@@ -17,14 +19,52 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::ops::Index;
+use std::ops::IndexMut;
 
 struct AssetData {
     asset: Asset,
     flag: u32,
 }
+
+struct TextureData {
+    address: u32,
+    edited: u32,
+}
+
+impl Index<textures::TextureId> for Vec<TextureData> {
+    type Output = TextureData;
+    fn index(&self, index: textures::TextureId) -> &Self::Output {
+        let i: usize = index.into();
+        &self[i]
+    }
+}
+
+impl IndexMut<textures::TextureId> for Vec<TextureData> {
+    fn index_mut(&mut self, index: textures::TextureId) -> &mut Self::Output {
+        let i: usize = index.into();
+        &mut self[i]
+    }
+}
+
+impl Index<&textures::TextureId> for Vec<TextureData> {
+    type Output = TextureData;
+    fn index(&self, index: &textures::TextureId) -> &Self::Output {
+        let i: usize = (*index).into();
+        &self[i]
+    }
+}
+
+impl IndexMut<&textures::TextureId> for Vec<TextureData> {
+    fn index_mut(&mut self, index: &textures::TextureId) -> &mut Self::Output {
+        let i: usize = (*index).into();
+        &mut self[i]
+    }
+}
+
 pub struct Randomizer {
     assets: Vec<AssetData>,
-    textures: Vec<u32>,
+    textures: Vec<TextureData>,
 }
 
 impl Randomizer {
@@ -38,6 +78,32 @@ impl Randomizer {
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         self.write_db360()?;
         self.write_textures()?;
+        Ok(())
+    }
+
+    pub fn set_world_order(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+        for (id, level) in order.iter().enumerate() {
+            self.set_level_art(id.into(), *level)?;
+        }
+
+        Ok(())
+    }
+
+    fn set_level_art(&mut self, old: LevelOrder, new: LevelOrder) -> Result<(), Box<dyn Error>> {
+        let old_level = &LEVELS_INFO[old];
+        let new_level = &LEVELS_INFO[new];
+
+        for (o, n) in old_level.painting.iter().zip(new_level.painting) {
+            self.textures[o].edited = self.textures[n].address;
+        }
+
+        self.textures[old_level.sign_left].edited = self.textures[new_level.sign_left].address;
+        self.textures[old_level.sign_right].edited = self.textures[new_level.sign_right].address;
+
+        for id in 0..4 {
+            self.textures[old_level.label[id]].edited = self.textures[new_level.label[id]].address;
+        }
+
         Ok(())
     }
 
@@ -94,25 +160,23 @@ impl Randomizer {
         }
 
         patched.seek(SeekFrom::Start(8))?;
+
         for id in 0..ASSETS.len() {
             patched.write_u32::<BigEndian>(offsets[id])?;
             patched.write_u32::<BigEndian>(self.assets[id].flag)?;
         }
+
         Ok(())
     }
 
     fn write_textures(&self) -> Result<(), Box<dyn Error>> {
-        let mut file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open("db360.textures.cmp.patched")?;
+        let mut file = OpenOptions::new().write(true).open("db360.textures.cmp")?;
         let metadata_size = 20;
 
         file.seek_relative(4)?;
 
-        for address in &self.textures {
-            file.write_u32::<BigEndian>(*address)?;
+        for data in &self.textures {
+            file.write_u32::<BigEndian>(data.edited)?;
             file.seek_relative(metadata_size - 4)?;
         }
 
@@ -231,7 +295,7 @@ fn read_db360() -> Result<Vec<AssetData>, Box<dyn Error>> {
     Ok(loaded_assets)
 }
 
-fn read_textures() -> Result<Vec<u32>, Box<dyn Error>> {
+fn read_textures() -> Result<Vec<TextureData>, Box<dyn Error>> {
     let mut file = File::open("db360.textures.cmp")?;
     let entry_count = file.read_u32::<BigEndian>()?;
     assert_eq!(entry_count, 6576);
@@ -240,7 +304,10 @@ fn read_textures() -> Result<Vec<u32>, Box<dyn Error>> {
     let mut addresses = vec![];
     for _ in 0..entry_count {
         let address = file.read_u32::<BigEndian>()?;
-        addresses.push(address);
+        addresses.push(TextureData {
+            address,
+            edited: address,
+        });
         file.seek_relative(metadata_size - 4)?;
     }
 
