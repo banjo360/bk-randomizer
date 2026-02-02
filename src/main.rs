@@ -2,6 +2,7 @@ use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
+use crate::assets::midi::Midi;
 use crate::assets::model::Model;
 use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
@@ -66,8 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 loaded_assets.push(Asset::Animation(data));
             }
             AssetId::Midi(_midi_id) => {
-                let data = Unknown::new(&mut file, sizes[id])?;
-                loaded_assets.push(Asset::Unknown(data));
+                let data = Midi::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Midi(data));
             }
             AssetId::Model(_model_id) => {
                 let data = Model::new(&mut file, sizes[id])?;
@@ -124,13 +125,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let data = Question::new(&mut file)?;
                 loaded_assets.push(Asset::Question(data));
             }
-            AssetId::Unknown(_unknown_id) => {
-                let data = Unknown::new(&mut file, sizes[id])?;
-                loaded_assets.push(Asset::Unknown(data));
-            }
             AssetId::Xbox(_xbox_id) => {
                 let data = Dialogue::new(&mut file)?;
                 loaded_assets.push(Asset::Dialogue(data));
+            }
+            AssetId::Unknown(_unknown_id) => {
+                let data = Unknown::new(&mut file, sizes[id])?;
+                loaded_assets.push(Asset::Unknown(data));
             }
         }
 
@@ -184,6 +185,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Asset::Model(model) => {
                 model.write(&mut patched)?;
+            }
+            Asset::Midi(midi) => {
+                midi.write(&mut patched)?;
             }
             Asset::Unknown(unknown) => {
                 unknown.write(&mut patched)?;
