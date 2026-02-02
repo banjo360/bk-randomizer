@@ -131,7 +131,6 @@ impl GeometryLayout {
         })
     }
 
-    #[allow(unused)]
     pub fn write<W: Write>(&self, _writer: &mut W) -> Result<(), Box<dyn Error>> {
         Ok(())
     }

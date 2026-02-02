@@ -1,0 +1,248 @@
+use crate::assets::Asset;
+use crate::assets::animation::Animation;
+use crate::assets::dialogue::Dialogue;
+use crate::assets::map_setup::MapSetup;
+use crate::assets::midi::Midi;
+use crate::assets::model::Model;
+use crate::assets::question::Question;
+use crate::assets::sprite::Sprite;
+use crate::assets::unknown::Unknown;
+use crate::data::db360::ASSETS;
+use crate::enums::*;
+use byteorder::BigEndian;
+use byteorder::ReadBytesExt;
+use byteorder::WriteBytesExt;
+use std::error::Error;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::Seek;
+use std::io::SeekFrom;
+
+struct AssetData {
+    asset: Asset,
+    flag: u32,
+}
+pub struct Randomizer {
+    assets: Vec<AssetData>,
+    textures: Vec<u32>,
+}
+
+impl Randomizer {
+    pub fn new() -> Result<Self, Box<dyn Error>> {
+        let assets = read_db360()?;
+        let textures = read_textures()?;
+
+        Ok(Self { assets, textures })
+    }
+
+    pub fn save(&self) -> Result<(), Box<dyn Error>> {
+        self.write_db360()?;
+        self.write_textures()?;
+        Ok(())
+    }
+
+    fn write_db360(&self) -> Result<(), Box<dyn Error>> {
+        let entry_count = self.assets.len();
+
+        let mut patched = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("db360.cmp.patched")?;
+
+        patched.write_u32::<BigEndian>(entry_count as u32)?;
+        patched.write_u32::<BigEndian>(0xCDCDCDCD)?;
+        for _ in 0..entry_count {
+            patched.write_u32::<BigEndian>(0)?;
+            patched.write_u32::<BigEndian>(0)?;
+        }
+
+        let mut offsets = vec![];
+        let header = patched.seek(SeekFrom::Current(0))?;
+
+        for i in 0..entry_count {
+            let current_offset = patched.seek(SeekFrom::Current(0))? - header;
+            offsets.push(current_offset as u32);
+
+            match &self.assets[i].asset {
+                Asset::Animation(animation) => {
+                    animation.write(&mut patched)?;
+                }
+                Asset::Dialogue(dialogue) => {
+                    dialogue.write(&mut patched)?;
+                }
+                Asset::MapSetup(map_setup) => {
+                    map_setup.write(&mut patched)?;
+                }
+                Asset::Question(question) => {
+                    question.write(&mut patched)?;
+                }
+                Asset::Sprite(sprite) => {
+                    sprite.write(&mut patched)?;
+                }
+                Asset::Model(model) => {
+                    model.write(&mut patched)?;
+                }
+                Asset::Midi(midi) => {
+                    midi.write(&mut patched)?;
+                }
+                Asset::Unknown(unknown) => {
+                    unknown.write(&mut patched)?;
+                }
+                Asset::Empty => {}
+            }
+        }
+
+        patched.seek(SeekFrom::Start(8))?;
+        for id in 0..ASSETS.len() {
+            patched.write_u32::<BigEndian>(offsets[id])?;
+            patched.write_u32::<BigEndian>(self.assets[id].flag)?;
+        }
+        Ok(())
+    }
+
+    fn write_textures(&self) -> Result<(), Box<dyn Error>> {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open("db360.textures.cmp.patched")?;
+        let metadata_size = 20;
+
+        file.seek_relative(4)?;
+
+        for address in &self.textures {
+            file.write_u32::<BigEndian>(*address)?;
+            file.seek_relative(metadata_size - 4)?;
+        }
+
+        Ok(())
+    }
+}
+
+fn read_db360() -> Result<Vec<AssetData>, Box<dyn Error>> {
+    let mut file = File::open("db360.cmp")?;
+
+    let entry_count = file.read_u32::<BigEndian>()?;
+    assert_eq!(entry_count, 3701);
+    let _padding = file.read_u32::<BigEndian>()?;
+
+    let mut sizes = vec![];
+    let mut flags = vec![];
+
+    let mut curr_offset = file.read_u32::<BigEndian>()?;
+    let flag = file.read_u32::<BigEndian>()?;
+    flags.push(flag);
+
+    for _ in 1..entry_count {
+        let offset = file.read_u32::<BigEndian>()?;
+        let flag = file.read_u32::<BigEndian>()?;
+        flags.push(flag);
+
+        sizes.push((offset - curr_offset) as usize);
+        curr_offset = offset;
+    }
+
+    let file_size = file.metadata()?.len() as usize;
+    sizes.push(file_size - curr_offset as usize);
+
+    assert_eq!(sizes.len(), entry_count as usize);
+
+    let mut loaded_assets = vec![];
+
+    for (id, asset) in ASSETS.iter().enumerate() {
+        let _pos = file.seek(SeekFrom::Current(0))?;
+
+        let asset = match asset {
+            AssetId::Empty => Asset::Empty,
+            AssetId::Animation(_animation_id) => {
+                let data = Animation::new(&mut file)?;
+                Asset::Animation(data)
+            }
+            AssetId::Midi(_midi_id) => {
+                let data = Midi::new(&mut file, sizes[id])?;
+                Asset::Midi(data)
+            }
+            AssetId::Model(_model_id) => {
+                let data = Model::new(&mut file, sizes[id])?;
+                Asset::Model(data)
+            }
+            AssetId::MapSetup(_map_setup_id) => {
+                let map = MapSetup::new(&mut file)?;
+                Asset::MapSetup(map)
+            }
+            AssetId::Dialogue(_dialogue_id) => {
+                let data = Dialogue::new(&mut file)?;
+                Asset::Dialogue(data)
+            }
+            AssetId::Credits(_credits_id) => {
+                let data = Dialogue::new(&mut file)?;
+                Asset::Dialogue(data)
+            }
+            AssetId::Sprite(sprite_id) => {
+                match sprite_id {
+                    // these sprites have a "strange" format (closer to N64 or something else)
+                    SpriteId::Sprite0064D520
+                    | SpriteId::Sprite0064E8D8
+                    | SpriteId::Sprite0064EB58
+                    | SpriteId::Sprite006536C8
+                    | SpriteId::Sprite006546D8
+                    | SpriteId::Sprite0064ECC8 => {
+                        let data = Unknown::new(&mut file, sizes[id])?;
+                        Asset::Unknown(data)
+                    }
+                    _ => {
+                        let data = Sprite::new(&mut file)?;
+                        Asset::Sprite(data)
+                    }
+                }
+            }
+            AssetId::Question(_question_id) => {
+                let data = Question::new(&mut file)?;
+                Asset::Question(data)
+            }
+            AssetId::Xbox(_xbox_id) => {
+                let data = Dialogue::new(&mut file)?;
+                Asset::Dialogue(data)
+            }
+            AssetId::Unknown(_unknown_id) => {
+                let data = Unknown::new(&mut file, sizes[id])?;
+                Asset::Unknown(data)
+            }
+        };
+
+        loaded_assets.push(AssetData {
+            asset,
+            flag: flags[id],
+        });
+
+        // for some reason, some files are aligned on 8 bytes and some aren't
+        while let Ok(byte) = file.read_u8() {
+            if byte != 0xCD {
+                break;
+            }
+        }
+
+        file.seek_relative(-1)?;
+    }
+
+    assert_eq!(entry_count as usize, loaded_assets.len());
+
+    Ok(loaded_assets)
+}
+
+fn read_textures() -> Result<Vec<u32>, Box<dyn Error>> {
+    let mut file = File::open("db360.textures.cmp")?;
+    let entry_count = file.read_u32::<BigEndian>()?;
+    assert_eq!(entry_count, 6576);
+    let metadata_size = 20;
+
+    let mut addresses = vec![];
+    for _ in 0..entry_count {
+        let address = file.read_u32::<BigEndian>()?;
+        addresses.push(address);
+        file.seek_relative(metadata_size - 4)?;
+    }
+
+    Ok(addresses)
+}

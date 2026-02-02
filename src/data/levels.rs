@@ -1,9 +1,9 @@
 #![allow(unused)]
 
-use crate::ActorId;
-use crate::MapSetupId;
-use crate::TextureId;
 use crate::enum_builder;
+use crate::enums::ActorId;
+use crate::enums::MapSetupId;
+use crate::enums::TextureId;
 use std::ops::Index;
 
 pub struct LevelInfo {

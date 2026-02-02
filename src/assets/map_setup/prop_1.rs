@@ -1,5 +1,5 @@
-use crate::ActorId;
-use crate::WarpOrTriggerId;
+use crate::enums::ActorId;
+use crate::enums::WarpOrTriggerId;
 use crate::utils::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;

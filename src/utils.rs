@@ -141,7 +141,7 @@ pub fn float_to_fixed(float: f32) -> u16 {
     for i in 1..7 {
         let part = 2f32.powi(-i);
         if fract >= part {
-            fixed += (1 << (6 - i));
+            fixed += 1 << (6 - i);
             fract -= part;
         }
     }

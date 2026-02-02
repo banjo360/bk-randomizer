@@ -13,7 +13,6 @@ pub use cube::Cube;
 mod lighting;
 pub use lighting::Lighting;
 mod prop_1;
-pub use prop_1::Category;
 pub use prop_1::Prop1;
 mod prop_2;
 pub use prop_2::Prop2;
