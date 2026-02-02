@@ -14,6 +14,7 @@ use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use data::db360::ASSETS;
 use data::levels::LEVELS_INFO;
+use data::levels::LevelOrder;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Seek;
@@ -211,41 +212,41 @@ fn main() -> Result<(), Box<dyn Error>> {
     let metadata_size = 20;
 
     let mut fp_pos = vec![];
-    for i in &LEVELS_INFO[4].painting {
+    for i in &LEVELS_INFO[LevelOrder::FreezeezyPeak].painting {
         file.seek(std::io::SeekFrom::Start(*i as u64 * metadata_size + 4))?;
         let position = file.read_u32::<BigEndian>()?;
         fp_pos.push(position);
     }
 
     let mut index = 0;
-    for i in &LEVELS_INFO[0].painting {
+    for i in &LEVELS_INFO[LevelOrder::MumbosMountain].painting {
         file.seek(std::io::SeekFrom::Start(*i as u64 * metadata_size + 4))?;
         file.write_u32::<BigEndian>(fp_pos[index])?;
         index += 1;
     }
 
-    let fp_sign_left = LEVELS_INFO[4].sign_left as u64;
+    let fp_sign_left = LEVELS_INFO[LevelOrder::FreezeezyPeak].sign_left as u64;
     file.seek(std::io::SeekFrom::Start(fp_sign_left * metadata_size + 4))?;
     let address = file.read_u32::<BigEndian>()?;
 
-    let mm_sign_left = LEVELS_INFO[0].sign_left as u64;
+    let mm_sign_left = LEVELS_INFO[LevelOrder::MumbosMountain].sign_left as u64;
     file.seek(std::io::SeekFrom::Start(mm_sign_left * metadata_size + 4))?;
     file.write_u32::<BigEndian>(address)?;
 
-    let fp_sign_right = LEVELS_INFO[4].sign_right as u64;
+    let fp_sign_right = LEVELS_INFO[LevelOrder::FreezeezyPeak].sign_right as u64;
     file.seek(std::io::SeekFrom::Start(fp_sign_right * metadata_size + 4))?;
     let address = file.read_u32::<BigEndian>()?;
 
-    let mm_sign_right = LEVELS_INFO[0].sign_right as u64;
+    let mm_sign_right = LEVELS_INFO[LevelOrder::MumbosMountain].sign_right as u64;
     file.seek(std::io::SeekFrom::Start(mm_sign_right * metadata_size + 4))?;
     file.write_u32::<BigEndian>(address)?;
 
     for id in 0..4 {
-        let fp_label = LEVELS_INFO[4].label[id] as u64;
+        let fp_label = LEVELS_INFO[LevelOrder::FreezeezyPeak].label[id] as u64;
         file.seek(std::io::SeekFrom::Start(fp_label * metadata_size + 4))?;
         let address = file.read_u32::<BigEndian>()?;
 
-        let mm_label = LEVELS_INFO[0].label[id] as u64;
+        let mm_label = LEVELS_INFO[LevelOrder::MumbosMountain].label[id] as u64;
         file.seek(std::io::SeekFrom::Start(mm_label * metadata_size + 4))?;
         file.write_u32::<BigEndian>(address)?;
     }

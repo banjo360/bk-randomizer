@@ -3,19 +3,66 @@
 use crate::ActorId;
 use crate::MapSetupId;
 use crate::TextureId;
+use crate::enum_builder;
+use std::ops::Index;
 
 pub struct LevelInfo {
-    pub setup_id: MapSetupId,
     pub warp_entry_point: ActorId,
     pub sign_left: TextureId,
     pub sign_right: TextureId,
     pub label: [TextureId; 4],
     pub painting: [TextureId; 16],
+    pub maps: &'static [MapSetupId],
 }
+
+enum_builder! {
+    #[repr(usize)]
+    pub enum LevelOrder {
+        MumbosMountain = 0,
+        TreasureTroveCove = 1,
+        ClankersCavern = 2,
+        BubbleGloopSwamp = 3,
+        FreezeezyPeak = 4,
+        GobisValley = 5,
+        ClickClockWood = 6,
+        RustyBucketBay = 7,
+        MadMonsterMansion = 8,
+    }
+}
+
+impl Index<LevelOrder> for [LevelInfo] {
+    type Output = LevelInfo;
+    fn index(&self, idx: LevelOrder) -> &Self::Output {
+        let i: usize = idx.into();
+        &self[i]
+    }
+}
+
+pub const LAIR_MAPS: [MapSetupId; 20] = [
+    MapSetupId::GlMmLobby,
+    MapSetupId::GlTtcAndCcPuzzle,
+    MapSetupId::Gl180NoteDoor,
+    MapSetupId::GlRedCauldronRoom,
+    MapSetupId::GlTtcLobby,
+    MapSetupId::GlGvLobby,
+    MapSetupId::GlFpLobby,
+    MapSetupId::GlCcLobby,
+    MapSetupId::GlStatueRoom,
+    MapSetupId::GlBgsLobby,
+    MapSetupId::GlGvPuzzle,
+    MapSetupId::GlMmmLobby,
+    MapSetupId::Gl640NoteDoor,
+    MapSetupId::GlRbbLobby,
+    MapSetupId::GlRbbAndMmmPuzzle,
+    MapSetupId::GlCcwLobby,
+    MapSetupId::GlCrypt,
+    MapSetupId::GlFfEntrance,
+    MapSetupId::GlFurnaceFun,
+    MapSetupId::GlDingpot,
+];
 
 pub const LEVELS_INFO: [LevelInfo; 9] = [
     LevelInfo {
-        setup_id: MapSetupId::MumbosMountain,
         warp_entry_point: ActorId::EntryPoint5,
         sign_left: TextureId::MmSignLeft,
         sign_right: TextureId::MmSignRight,
@@ -43,9 +90,13 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::MmPainting23,
             TextureId::MmPainting33,
         ],
+        maps: &[
+            MapSetupId::MumbosMountain,
+            MapSetupId::TickersTower,
+            MapSetupId::MmMumbosSkull,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::TreasureTroveCove,
         warp_entry_point: ActorId::EntryPoint4,
 
         sign_left: TextureId::TtcSignLeft,
@@ -74,9 +125,15 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::TtcPainting23,
             TextureId::TtcPainting33,
         ],
+        maps: &[
+            MapSetupId::TreasureTroveCove,
+            MapSetupId::BlubbersShip,
+            MapSetupId::NippersShell,
+            MapSetupId::SharkfoodIsland,
+            MapSetupId::Sandcastle,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::ClankersCavern,
         warp_entry_point: ActorId::EntryPoint5,
 
         sign_left: TextureId::CcSignLeft,
@@ -105,9 +162,14 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::CcPainting23,
             TextureId::CcPainting33,
         ],
+        maps: &[
+            MapSetupId::ClankersCavern,
+            MapSetupId::CcWitchSwitchRoom,
+            MapSetupId::InsideClanker,
+            MapSetupId::GoldfeatherRoom,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::BubbleGloopSwamp,
         warp_entry_point: ActorId::EntryPoint2,
 
         sign_left: TextureId::BgsSignLeft,
@@ -136,9 +198,14 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::BgsPainting23,
             TextureId::BgsPainting33,
         ],
+        maps: &[
+            MapSetupId::BubbleGloopSwamp,
+            MapSetupId::MrVile,
+            MapSetupId::Tiptup,
+            MapSetupId::BgsMumbosSkull,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::FreezeezyPeak,
         warp_entry_point: ActorId::EntryPoint1,
 
         sign_left: TextureId::FpSignLeft,
@@ -167,9 +234,15 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::FpPainting23,
             TextureId::FpPainting33,
         ],
+        maps: &[
+            MapSetupId::FreezeezyPeak,
+            MapSetupId::BoggysIgloo,
+            MapSetupId::FpMumbosSkull,
+            MapSetupId::ChristmasTree,
+            MapSetupId::WozzasCave,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::GobisValley,
         warp_entry_point: ActorId::EntryPoint8,
 
         sign_left: TextureId::GvSignLeft,
@@ -198,9 +271,17 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::GvPainting23,
             TextureId::GvPainting33,
         ],
+        maps: &[
+            MapSetupId::GobisValley,
+            MapSetupId::MemoryGame,
+            MapSetupId::SandybuttsMaze,
+            MapSetupId::WaterPyramid,
+            MapSetupId::RubeesChamber,
+            MapSetupId::InsideJinxy,
+            MapSetupId::SnsChamber,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::CcwHub,
         warp_entry_point: ActorId::EntryPoint7,
 
         sign_left: TextureId::CcwSignLeft,
@@ -229,9 +310,33 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::CcwPainting23,
             TextureId::CcwPainting33,
         ],
+        maps: &[
+            MapSetupId::CcwHub,
+            MapSetupId::CcwSpring,
+            MapSetupId::CcwSummer,
+            MapSetupId::CcwAutumn,
+            MapSetupId::CcwWinter,
+            MapSetupId::CcwSpringMumbosSkull,
+            MapSetupId::CcwSummerMumbosSkull,
+            MapSetupId::CcwAutumnMumbosSkull,
+            MapSetupId::CcwWinterMumbosSkull,
+            MapSetupId::CcwSummerZubbaHive,
+            MapSetupId::CcwSpringZubbaHive,
+            MapSetupId::CcwAutumnZubbaHive,
+            MapSetupId::CcwSpringNabnutsHouse,
+            MapSetupId::CcwSummerNabnutsHouse,
+            MapSetupId::CcwAutumnNabnutsHouse,
+            MapSetupId::CcwWinterNabnutsHouse,
+            MapSetupId::CcwWinterHoneycombRoom,
+            MapSetupId::CcwAutumnNabnutsWaterSupply,
+            MapSetupId::CcwWinterNabnutsWaterSupply,
+            MapSetupId::CcwSpringWhipcrackRoom,
+            MapSetupId::CcwSummerWhipcrackRoom,
+            MapSetupId::CcwAutumnWhipcrackRoom,
+            MapSetupId::CcwWinterWhipcrackRoom,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::RustyBucketBay,
         warp_entry_point: ActorId::EntryPoint16,
 
         sign_left: TextureId::RbbSignLeft,
@@ -260,9 +365,24 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::RbbPainting23,
             TextureId::RbbPainting33,
         ],
+        maps: &[
+            MapSetupId::RustyBucketBay,
+            MapSetupId::EngineRoom,
+            MapSetupId::Warehouse,
+            MapSetupId::Boathouse,
+            MapSetupId::Container1,
+            MapSetupId::Container3,
+            MapSetupId::CrewCabin,
+            MapSetupId::BossBoomBox,
+            MapSetupId::StorageRoom,
+            MapSetupId::Kitchen,
+            MapSetupId::NavigationRoom,
+            MapSetupId::Container2,
+            MapSetupId::CaptainsCabin,
+            MapSetupId::AnchorRoom,
+        ],
     },
     LevelInfo {
-        setup_id: MapSetupId::MadMonsterMansion,
         warp_entry_point: ActorId::EntryPoint20,
 
         sign_left: TextureId::MmmSignLeft,
@@ -290,6 +410,24 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
             TextureId::MmmPainting13,
             TextureId::MmmPainting23,
             TextureId::MmmPainting33,
+        ],
+        maps: &[
+            MapSetupId::MadMonsterMansion,
+            MapSetupId::Church,
+            MapSetupId::Cellar,
+            MapSetupId::TumblarsShed,
+            MapSetupId::Well,
+            MapSetupId::NappersRoom,
+            MapSetupId::MmmEggRoom,
+            MapSetupId::MmmNoteRoom,
+            MapSetupId::MmmFeatherRoom,
+            MapSetupId::SecretChurchRoom,
+            MapSetupId::Bathroom,
+            MapSetupId::Bedroom,
+            MapSetupId::MmmHoneycombRoom,
+            MapSetupId::WaterdrainBarrel,
+            MapSetupId::MmmMumbosSkull,
+            MapSetupId::InsideLoggo,
         ],
     },
 ];
