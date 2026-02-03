@@ -4,10 +4,20 @@ use crate::enum_builder;
 use crate::enums::ActorId;
 use crate::enums::MapSetupId;
 use crate::enums::TextureId;
+use crate::enums::WarpOrTriggerId;
+use crate::enums::map::MapId;
 use std::ops::Index;
+
+pub struct WarpLair {
+    pub map_id: MapId,
+    pub exit_id: u16,
+    pub map_setup: MapSetupId,
+    pub warp_id: WarpOrTriggerId,
+}
 
 pub struct LevelInfo {
     pub warp_entry_point: ActorId,
+    pub warp_lair: WarpLair,
     pub sign_left: TextureId,
     pub sign_right: TextureId,
     pub label: [TextureId; 4],
@@ -23,10 +33,11 @@ enum_builder! {
         ClankersCavern = 2,
         BubbleGloopSwamp = 3,
         FreezeezyPeak = 4,
-        GobisValley = 5,
-        ClickClockWood = 6,
-        RustyBucketBay = 7,
-        MadMonsterMansion = 8,
+        Lair = 5,
+        GobisValley = 6,
+        ClickClockWood = 7,
+        RustyBucketBay = 8,
+        MadMonsterMansion = 9,
     }
 }
 
@@ -61,9 +72,15 @@ pub const LAIR_MAPS: [MapSetupId; 20] = [
     MapSetupId::GlDingpot,
 ];
 
-pub const LEVELS_INFO: [LevelInfo; 9] = [
+pub const LEVELS_INFO: [LevelInfo; 10] = [
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint5,
+        warp_lair: WarpLair {
+            map_id: MapId::GlMmLobby,
+            exit_id: 2,
+            map_setup: MapSetupId::GlMmLobby,
+            warp_id: WarpOrTriggerId::MmEnterLevel,
+        },
         sign_left: TextureId::MmSignLeft,
         sign_right: TextureId::MmSignRight,
         label: [
@@ -98,7 +115,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint4,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlTtcLobby,
+            exit_id: 4,
+            map_setup: MapSetupId::GlTtcLobby,
+            warp_id: WarpOrTriggerId::TtcEnterLevel,
+        },
         sign_left: TextureId::TtcSignLeft,
         sign_right: TextureId::TtcSignRight,
         label: [
@@ -135,7 +157,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint5,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlCcLobby,
+            exit_id: 2,
+            map_setup: MapSetupId::GlCcLobby,
+            warp_id: WarpOrTriggerId::CcEnterLevel,
+        },
         sign_left: TextureId::CcSignLeft,
         sign_right: TextureId::CcSignRight,
         label: [
@@ -171,7 +198,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint2,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlBgsLobby,
+            exit_id: 2,
+            map_setup: MapSetupId::GlBgsLobby,
+            warp_id: WarpOrTriggerId::BgsEnterLevel,
+        },
         sign_left: TextureId::BgsSignLeft,
         sign_right: TextureId::BgsSignRight,
         label: [
@@ -207,7 +239,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint1,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlFpLobby,
+            exit_id: 6,
+            map_setup: MapSetupId::GlFpLobby,
+            warp_id: WarpOrTriggerId::FpEnterLevel,
+        },
         sign_left: TextureId::FpSignLeft,
         sign_right: TextureId::FpSignRight,
         label: [
@@ -243,8 +280,50 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
         ],
     },
     LevelInfo {
+        // lair, bogus values
+        warp_entry_point: ActorId::EntryPoint1,
+        warp_lair: WarpLair {
+            map_id: MapId::SpiralMountain,
+            exit_id: 0,
+            map_setup: MapSetupId::SpiralMountain,
+            warp_id: WarpOrTriggerId::TtcEnterLevel,
+        },
+        sign_left: TextureId::MmSignLeft,
+        sign_right: TextureId::MmSignLeft,
+        label: [
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+        ],
+        painting: [
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+            TextureId::MmSignLeft,
+        ],
+        maps: &[],
+    },
+    LevelInfo {
         warp_entry_point: ActorId::EntryPoint8,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlGvLobby,
+            exit_id: 3,
+            map_setup: MapSetupId::GlGvLobby,
+            warp_id: WarpOrTriggerId::GvEnterLevel,
+        },
         sign_left: TextureId::GvSignLeft,
         sign_right: TextureId::GvSignRight,
         label: [
@@ -283,7 +362,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint7,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlCcwLobby,
+            exit_id: 6,
+            map_setup: MapSetupId::GlCcwLobby,
+            warp_id: WarpOrTriggerId::CcwEnterLevel,
+        },
         sign_left: TextureId::CcwSignLeft,
         sign_right: TextureId::CcwSignRight,
         label: [
@@ -338,7 +422,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint16,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlRbbLobby,
+            exit_id: 2,
+            map_setup: MapSetupId::GlRbbLobby,
+            warp_id: WarpOrTriggerId::RbbEnterLevel,
+        },
         sign_left: TextureId::RbbSignLeft,
         sign_right: TextureId::RbbSignRight,
         label: [
@@ -384,7 +473,12 @@ pub const LEVELS_INFO: [LevelInfo; 9] = [
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint20,
-
+        warp_lair: WarpLair {
+            map_id: MapId::GlMmmLobby,
+            exit_id: 2,
+            map_setup: MapSetupId::GlMmmLobby,
+            warp_id: WarpOrTriggerId::MmmEnterLevel,
+        },
         sign_left: TextureId::MmmSignLeft,
         sign_right: TextureId::MmmSignRight,
         label: [

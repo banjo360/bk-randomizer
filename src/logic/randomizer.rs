@@ -1,6 +1,7 @@
 use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
+use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::midi::Midi;
 use crate::assets::model::Model;
@@ -10,6 +11,7 @@ use crate::assets::unknown::Unknown;
 use crate::data::db360::ASSETS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelOrder;
+use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::enums::*;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
@@ -78,18 +80,26 @@ impl Randomizer {
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         self.write_db360()?;
         self.write_textures()?;
+
         Ok(())
     }
 
     pub fn set_world_order(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+        let mut order = order;
+        order.insert(LevelOrder::Lair.into(), LevelOrder::Lair);
         for (id, level) in order.iter().enumerate() {
             self.set_level_art(id.into(), *level)?;
+            self.change_level_warp(id.into(), *level)?;
         }
 
         Ok(())
     }
 
     fn set_level_art(&mut self, old: LevelOrder, new: LevelOrder) -> Result<(), Box<dyn Error>> {
+        if old == LevelOrder::Lair {
+            return Ok(());
+        }
+
         let old_level = &LEVELS_INFO[old];
         let new_level = &LEVELS_INFO[new];
 
@@ -103,6 +113,42 @@ impl Randomizer {
         for id in 0..4 {
             self.textures[old_level.label[id]].edited = self.textures[new_level.label[id]].address;
         }
+
+        Ok(())
+    }
+
+    fn change_level_warp(
+        &mut self,
+        old: LevelOrder,
+        new: LevelOrder,
+    ) -> Result<(), Box<dyn Error>> {
+        if old == LevelOrder::Lair {
+            return Ok(());
+        }
+
+        let old_level = &LEVELS_INFO[old];
+        let new_level = &LEVELS_INFO[new];
+
+        let map_setup: u16 = old_level.warp_lair.map_setup.into();
+        let asset = &mut self.assets[map_setup as usize].asset;
+
+        if let Asset::MapSetup(map_setup) = asset {
+            for c in &mut map_setup.cubes {
+                for o in &mut c.props_1 {
+                    if let Category::WarpOrTrigger(id) = o.category {
+                        if id == old_level.warp_lair.warp_id {
+                            o.category = Category::WarpOrTrigger(new_level.warp_lair.warp_id);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut xex = OpenOptions::new().write(true).open("default.xex")?;
+        let new_order: usize = new.into();
+        xex.seek(SeekFrom::Start(LAIR_WARPS_TARGET + new_order as u64 * 4))?;
+        xex.write_u16::<BigEndian>(old_level.warp_lair.map_id.into())?;
+        xex.write_u16::<BigEndian>(old_level.warp_lair.exit_id)?;
 
         Ok(())
     }

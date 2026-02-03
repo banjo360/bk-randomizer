@@ -96,6 +96,7 @@ pub mod actors;
 pub mod animations;
 pub mod credits;
 pub mod dialogues;
+pub mod map;
 pub mod map_setups;
 pub mod midis;
 pub mod models;
