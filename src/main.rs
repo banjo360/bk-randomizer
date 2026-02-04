@@ -28,8 +28,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     level_order.shuffle(&mut rng());
 
     rando.set_world_order(level_order)?;
+    rando.remove_specific_actors()?;
 
     rando.save()?;
+
+    // check the rando can read what it wrote
+    let _rando = Randomizer::new()?;
 
     Ok(())
 }

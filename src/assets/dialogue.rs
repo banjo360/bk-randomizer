@@ -2,6 +2,7 @@ use crate::enum_builder;
 use crate::utils::read_string;
 use crate::utils::write_string;
 use byteorder::BigEndian;
+use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::collections::HashMap;
@@ -190,7 +191,8 @@ impl Dialogue {
     }
 
     pub fn write<W: Write + Seek>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
-        writer.write_u32::<BigEndian>(self.translations.len() as u32)?;
+        let header_offset = writer.seek(SeekFrom::Current(0))?;
+        writer.write_u8(self.translations.len() as u8)?;
 
         let offsets_position = writer.seek(SeekFrom::Current(0))?;
 
@@ -199,7 +201,6 @@ impl Dialogue {
         }
 
         let mut offsets = vec![];
-        let header_offset = writer.seek(SeekFrom::Current(0))?;
         for lang in 0..(self.translations.len() as u8) {
             let offset = (writer.seek(SeekFrom::Current(0))? - header_offset) as u16;
             offsets.push(offset);
@@ -221,7 +222,8 @@ impl Dialogue {
 
         writer.seek(SeekFrom::Start(offsets_position))?;
         for offset in offsets {
-            writer.write_u16::<BigEndian>(offset)?;
+            // little endian? really???
+            writer.write_u16::<LittleEndian>(offset)?;
         }
 
         writer.seek(SeekFrom::Start(end_of_file))?;

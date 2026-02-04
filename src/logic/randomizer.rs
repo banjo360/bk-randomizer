@@ -13,6 +13,7 @@ use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelOrder;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::enums::*;
+use crate::utils::align_writer;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
@@ -153,6 +154,37 @@ impl Randomizer {
         Ok(())
     }
 
+    pub fn remove_specific_actors(&mut self) -> Result<(), Box<dyn Error>> {
+        for asset in &mut self.assets {
+            match &mut asset.asset {
+                Asset::Animation(_animation) => {}
+                Asset::Dialogue(_dialogue) => {}
+                Asset::MapSetup(map_setup) => {
+                    for c in &mut map_setup.cubes {
+                        c.props_1.retain(|o| {
+                            if let Category::Actor(actor_id) = o.category {
+                                match actor_id {
+                                    ActorId::Unknown(id) => id != 0x373,
+                                    _ => true,
+                                }
+                            } else {
+                                true
+                            }
+                        });
+                    }
+                }
+                Asset::Question(_question) => {}
+                Asset::Unknown(_unknown) => {}
+                Asset::Sprite(_sprite) => {}
+                Asset::Model(_model) => {}
+                Asset::Midi(_midi) => {}
+                Asset::Empty => {}
+            }
+        }
+
+        Ok(())
+    }
+
     fn write_db360(&self) -> Result<(), Box<dyn Error>> {
         let entry_count = self.assets.len();
 
@@ -160,7 +192,7 @@ impl Randomizer {
             .create(true)
             .write(true)
             .truncate(true)
-            .open("db360.cmp.patched")?;
+            .open("db360.cmp")?;
 
         patched.write_u32::<BigEndian>(entry_count as u32)?;
         patched.write_u32::<BigEndian>(0xCDCDCDCD)?;
@@ -203,6 +235,8 @@ impl Randomizer {
                 }
                 Asset::Empty => {}
             }
+
+            align_writer(&mut patched)?;
         }
 
         patched.seek(SeekFrom::Start(8))?;

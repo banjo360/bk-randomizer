@@ -4,9 +4,12 @@ use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use std::error::Error;
+use std::io;
 use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
+
+use crate::enums::Language;
 
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
 pub struct Vector3<T> {
@@ -165,6 +168,18 @@ pub fn align_reader<R: Read + Seek>(reader: &mut R) -> Result<(), Box<dyn Error>
     Ok(())
 }
 
+pub fn align_writer<W: Write + Seek>(writer: &mut W) -> Result<(), Box<dyn Error>> {
+    let pos = writer.seek(std::io::SeekFrom::Current(0))?;
+    let modulo = (pos % 8) as usize;
+    if modulo != 0 {
+        let mut buffer = vec![0; 8 - modulo];
+        io::repeat(0xCD).read_exact(&mut buffer).unwrap();
+        writer.write(&buffer)?;
+    }
+
+    Ok(())
+}
+
 #[macro_export]
 macro_rules! enum_builder {
     (
@@ -230,7 +245,7 @@ pub fn read_string<R: Read>(reader: &mut R) -> Result<String, Box<dyn Error>> {
 
 pub fn write_string<W: Write>(writer: &mut W, string: &str) -> Result<(), Box<dyn Error>> {
     let buffer = convert_to_banjo_string(string);
-    writer.write_u8(buffer.len() as u8)?;
+    writer.write_u8(1 + buffer.len() as u8)?;
     if buffer.len() > 0 {
         writer.write(&buffer)?;
     }
@@ -243,17 +258,12 @@ pub fn convert_to_banjo_string(string: &str) -> Vec<u8> {
     let mut buffer = vec![0xFD, 0x6A];
     let mut mapping = JAPANESE_CHARACTERS;
 
-    for c in string.chars() {
-        if c != '⸾' && c != '⸽' {
-            if let Some(index) = JAPANESE_CHARACTERS.iter().position(|k| *k == c) {
-                // maybe JP
-            } else {
-                // definitely not JP
-                mapping = CHARACTERS;
-                buffer.clear();
-                break;
-            }
-        }
+    if string.chars().all(|c| match c {
+        '⸾' | '⸽' => true,
+        _ => CHARACTERS.contains(&c),
+    }) {
+        mapping = CHARACTERS;
+        buffer.clear();
     }
 
     for c in string.chars() {
