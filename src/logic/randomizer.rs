@@ -17,6 +17,8 @@ use crate::utils::align_writer;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
+use rand::prelude::SliceRandom;
+use rand::rng;
 use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -85,20 +87,54 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn set_world_order(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+    pub fn shuffle_world_order(&mut self) -> Result<(), Box<dyn Error>> {
+        let mut level_order = vec![
+            LevelOrder::MumbosMountain,
+            LevelOrder::TreasureTroveCove,
+            LevelOrder::ClankersCavern,
+            LevelOrder::BubbleGloopSwamp,
+            LevelOrder::FreezeezyPeak,
+            LevelOrder::GobisValley,
+            LevelOrder::ClickClockWood,
+            LevelOrder::RustyBucketBay,
+            LevelOrder::MadMonsterMansion,
+        ];
+
+        loop {
+            level_order.shuffle(&mut rng());
+
+            // since the first world need talon trot
+            if level_order[0].has_molehill() {
+                break;
+            }
+        }
+
+        self.set_world_order(level_order.clone())?;
+        self.shuffle_molehills(level_order)?;
+
+        Ok(())
+    }
+
+    fn shuffle_molehills(&mut self, _order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+        // let mut molehills = vec![];
+        Ok(())
+    }
+
+    fn set_world_order(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
         let mut order = order;
         order.insert(LevelOrder::Lair.into(), LevelOrder::Lair);
+
         for (id, level) in order.iter().enumerate() {
-            self.set_level_art(id.into(), *level)?;
+            self.set_level_art(id.into(), *level);
             self.change_level_warp(id.into(), *level)?;
         }
 
         Ok(())
     }
 
-    fn set_level_art(&mut self, old: LevelOrder, new: LevelOrder) -> Result<(), Box<dyn Error>> {
+    fn set_level_art(&mut self, old: LevelOrder, new: LevelOrder) {
         if old == LevelOrder::Lair {
-            return Ok(());
+            return;
         }
 
         let old_level = &LEVELS_INFO[old];
@@ -114,8 +150,6 @@ impl Randomizer {
         for id in 0..4 {
             self.textures[old_level.label[id]].edited = self.textures[new_level.label[id]].address;
         }
-
-        Ok(())
     }
 
     fn change_level_warp(

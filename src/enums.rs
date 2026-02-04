@@ -92,6 +92,32 @@ enum_builder! {
     }
 }
 
+enum_builder! {
+    #[repr(u8)]
+    pub enum Ability {
+        Barge = 0x0,
+        BeakBomb = 0x1,
+        BeakBuster = 0x2,
+        CameraControl = 0x3,
+        ClawSwipe = 0x4,
+        Climb = 0x5,
+        Eggs = 0x6,
+        FeatheryFlap = 0x7,
+        FlapFlip = 0x8,
+        Flight = 0x9,
+        HoldAJumpHigher = 0xA,
+        RatatatRap = 0xB,
+        Roll = 0xC,
+        ShockJump = 0xD,
+        WadingBoots = 0xE,
+        Dive = 0xF,
+        TalonTrot = 0x10,
+        TurboTalon = 0x11,
+        Wonderwing = 0x12,
+        FirstNotedoor = 0x13,
+    }
+}
+
 pub mod actors;
 pub mod animations;
 pub mod credits;

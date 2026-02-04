@@ -1,7 +1,9 @@
 #![allow(unused)]
 
 use crate::enum_builder;
+use crate::enums::Ability;
 use crate::enums::ActorId;
+use crate::enums::DialogueId;
 use crate::enums::MapSetupId;
 use crate::enums::TextureId;
 use crate::enums::WarpOrTriggerId;
@@ -15,6 +17,13 @@ pub struct WarpLair {
     pub warp_id: WarpOrTriggerId,
 }
 
+pub struct Molehill {
+    pub table_index: u8,
+    pub teach_text_id: DialogueId,
+    pub refresher_text_id: DialogueId,
+    pub ability: Ability,
+}
+
 pub struct LevelInfo {
     pub warp_entry_point: ActorId,
     pub warp_lair: WarpLair,
@@ -23,6 +32,7 @@ pub struct LevelInfo {
     pub label: [TextureId; 4],
     pub painting: [TextureId; 16],
     pub maps: &'static [MapSetupId],
+    pub molehills: &'static [Molehill],
 }
 
 enum_builder! {
@@ -38,6 +48,20 @@ enum_builder! {
         ClickClockWood = 7,
         RustyBucketBay = 8,
         MadMonsterMansion = 9,
+    }
+}
+
+impl LevelOrder {
+    pub fn has_molehill(&self) -> bool {
+        match self {
+            LevelOrder::MumbosMountain
+            | LevelOrder::TreasureTroveCove
+            | LevelOrder::ClankersCavern
+            | LevelOrder::BubbleGloopSwamp
+            | LevelOrder::FreezeezyPeak
+            | LevelOrder::GobisValley => true,
+            _ => false,
+        }
     }
 }
 
@@ -112,6 +136,26 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::TickersTower,
             MapSetupId::MmMumbosSkull,
         ],
+        molehills: &[
+            Molehill {
+                table_index: 1,
+                teach_text_id: DialogueId::BottlesLearningEggs,
+                refresher_text_id: DialogueId::BottlesEggsRefresher,
+                ability: Ability::Eggs,
+            },
+            Molehill {
+                table_index: 2,
+                teach_text_id: DialogueId::BottlesLearningBeakBuster,
+                refresher_text_id: DialogueId::BottlesBeakBusterRefresher,
+                ability: Ability::BeakBuster,
+            },
+            Molehill {
+                table_index: 3,
+                teach_text_id: DialogueId::BottlesLearningTalonTrot,
+                refresher_text_id: DialogueId::BottlesTalonTrotRefresher,
+                ability: Ability::TalonTrot,
+            },
+        ],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint4,
@@ -154,6 +198,20 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::SharkfoodIsland,
             MapSetupId::Sandcastle,
         ],
+        molehills: &[
+            Molehill {
+                table_index: 4,
+                teach_text_id: DialogueId::BottlesLearningShockJump,
+                refresher_text_id: DialogueId::BottlesShockJumpRefresher,
+                ability: Ability::ShockJump,
+            },
+            Molehill {
+                table_index: 5,
+                teach_text_id: DialogueId::BottlesLearningFlight,
+                refresher_text_id: DialogueId::BottlesFlightRefresher,
+                ability: Ability::Flight,
+            },
+        ],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint5,
@@ -195,6 +253,12 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::InsideClanker,
             MapSetupId::GoldfeatherRoom,
         ],
+        molehills: &[Molehill {
+            table_index: 6,
+            teach_text_id: DialogueId::BottlesLearningWonderwing,
+            refresher_text_id: DialogueId::BottlesWonderwingRefresher,
+            ability: Ability::Wonderwing,
+        }],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint2,
@@ -236,6 +300,12 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::Tiptup,
             MapSetupId::BgsMumbosSkull,
         ],
+        molehills: &[Molehill {
+            table_index: 7,
+            teach_text_id: DialogueId::BottlesLearningWadingBoots,
+            refresher_text_id: DialogueId::BottlesWadingBootsRefresher,
+            ability: Ability::WadingBoots,
+        }],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint1,
@@ -278,6 +348,12 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::ChristmasTree,
             MapSetupId::WozzasCave,
         ],
+        molehills: &[Molehill {
+            table_index: 0,
+            teach_text_id: DialogueId::BottlesLearningBeakBomb,
+            refresher_text_id: DialogueId::BottlesBeakBombRefresher,
+            ability: Ability::BeakBomb,
+        }],
     },
     LevelInfo {
         // lair, bogus values
@@ -315,6 +391,7 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             TextureId::MmSignLeft,
         ],
         maps: &[],
+        molehills: &[],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint8,
@@ -359,6 +436,12 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::InsideJinxy,
             MapSetupId::SnsChamber,
         ],
+        molehills: &[Molehill {
+            table_index: 8,
+            teach_text_id: DialogueId::BottlesLearningTurboTalon,
+            refresher_text_id: DialogueId::BottlesTurboTalonRefresher,
+            ability: Ability::TurboTalon,
+        }],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint7,
@@ -419,6 +502,7 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::CcwAutumnWhipcrackRoom,
             MapSetupId::CcwWinterWhipcrackRoom,
         ],
+        molehills: &[],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint16,
@@ -470,6 +554,7 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::CaptainsCabin,
             MapSetupId::AnchorRoom,
         ],
+        molehills: &[],
     },
     LevelInfo {
         warp_entry_point: ActorId::EntryPoint20,
@@ -523,5 +608,6 @@ pub const LEVELS_INFO: [LevelInfo; 10] = [
             MapSetupId::MmmMumbosSkull,
             MapSetupId::InsideLoggo,
         ],
+        molehills: &[],
     },
 ];
