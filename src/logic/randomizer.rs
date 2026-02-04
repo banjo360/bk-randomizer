@@ -12,6 +12,7 @@ use crate::data::db360::ASSETS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelOrder;
 use crate::data::xex::LAIR_WARPS_TARGET;
+use crate::data::xex::MOLEHILLS_MOVES_DATA;
 use crate::enums::*;
 use crate::utils::align_writer;
 use byteorder::BigEndian;
@@ -107,6 +108,11 @@ impl Randomizer {
             if level_order[0].has_molehill() {
                 break;
             }
+
+            // need to check shock jump too
+            // if level 1 is CC, GV or FP
+            // and levels 2, 3, 4 are CCW, RBB, MMM
+            // then all molehills are after the spring pad
         }
 
         self.set_world_order(level_order.clone())?;
@@ -115,8 +121,50 @@ impl Randomizer {
         Ok(())
     }
 
-    fn shuffle_molehills(&mut self, _order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
-        // let mut molehills = vec![];
+    fn shuffle_molehills(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+        let mut molehills = vec![];
+        for level in &order {
+            for mole in LEVELS_INFO[*level].molehills {
+                molehills.push(mole);
+            }
+        }
+
+        let talon_trot_max_pos = LEVELS_INFO[order[0]].molehills.len();
+
+        loop {
+            molehills.shuffle(&mut rng());
+
+            // since the first world need talon trot
+            if molehills[0..talon_trot_max_pos]
+                .iter()
+                .any(|m| m.ability == Ability::TalonTrot)
+            {
+                break;
+            }
+
+            // need to check shock jump too
+        }
+
+        let mut xex = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("default.xex")?;
+
+        let mut mole_index = 0;
+        for level in &order {
+            for mole in LEVELS_INFO[*level].molehills {
+                xex.seek(SeekFrom::Start(
+                    MOLEHILLS_MOVES_DATA + mole.table_index as u64 * 6, /* or 8? */
+                ))?;
+
+                xex.write_u16::<BigEndian>(molehills[mole_index].teach_text_id.into())?;
+                xex.write_u16::<BigEndian>(molehills[mole_index].refresher_text_id.into())?;
+                xex.read_u8()?; // easier than "skip"
+                xex.write_u8(molehills[mole_index].ability.into())?;
+                mole_index += 1;
+            }
+        }
+
         Ok(())
     }
 
