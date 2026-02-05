@@ -1,13 +1,14 @@
 #![allow(unused)]
 
 use crate::enum_builder;
+use crate::enums::map::MapId;
 use crate::enums::Ability;
 use crate::enums::ActorId;
 use crate::enums::DialogueId;
+use crate::enums::Language;
 use crate::enums::MapSetupId;
 use crate::enums::TextureId;
 use crate::enums::WarpOrTriggerId;
-use crate::enums::map::MapId;
 use std::ops::Index;
 
 pub struct WarpLair {
@@ -53,14 +54,77 @@ enum_builder! {
 
 impl LevelOrder {
     pub fn has_molehill(&self) -> bool {
+        self.molehill_count() > 0
+    }
+
+    pub fn molehill_count(&self) -> usize {
+        LEVELS_INFO[*self].molehills.len()
+    }
+
+    pub fn get_name(&self, lang: Language) -> &'static str {
         match self {
-            LevelOrder::MumbosMountain
-            | LevelOrder::TreasureTroveCove
-            | LevelOrder::ClankersCavern
-            | LevelOrder::BubbleGloopSwamp
-            | LevelOrder::FreezeezyPeak
-            | LevelOrder::GobisValley => true,
-            _ => false,
+            LevelOrder::MumbosMountain => match lang {
+                Language::German | Language::English => "MUMBO'S MOUNTAIN",
+                Language::Japanese => "",
+                Language::French => "LA MONTAGNE DE MUMBO",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::TreasureTroveCove => match lang {
+                Language::German | Language::English => "TREASURE TROVE COVE",
+                Language::Japanese => "",
+                Language::French => "LA BAIE DU TRÉSOR",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::ClankersCavern => match lang {
+                Language::German | Language::English => "CLANKER'S CAVERN",
+                Language::Japanese => "",
+                Language::French => "LA CAVERNE DE CLANKER",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::BubbleGloopSwamp => match lang {
+                Language::German | Language::English => "BUBBLEGLOOP SWAMP",
+                Language::Japanese => "",
+                Language::French => "LE MARAIS MOISI",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::FreezeezyPeak => match lang {
+                Language::German | Language::English => "FREEZEEZY PEAK",
+                Language::Japanese => "",
+                Language::French => "LE PIC POLAIRE",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::Lair => match lang {
+                Language::English => "GRUNTILDA'S LAIR",
+                Language::Japanese => "",
+                Language::French => "LE REPÈRE DE GRUNTILDA",
+                Language::German => "GRUNTILDAS REICH",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::GobisValley => match lang {
+                Language::German | Language::English => "GOBI'S VALLEY",
+                Language::Japanese => "",
+                Language::French => "LA VALLÉE DE GOBI",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::ClickClockWood => match lang {
+                Language::German | Language::English => "CLICK CLOCK WOOD",
+                Language::Japanese => "",
+                Language::French => "LE BOIS CLIC-CLAC",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::RustyBucketBay => match lang {
+                Language::German | Language::English => "RUSTY BUCKET BAY",
+                Language::Japanese => "",
+                Language::French => "LA BAIE DU RUSTY BUCKET",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::MadMonsterMansion => match lang {
+                Language::German | Language::English => "MAD MONSTER MANSION",
+                Language::Japanese => "",
+                Language::French => "LE MANOIR DU MONSTRE",
+                Language::Unknown(_) => todo!(),
+            },
+            LevelOrder::Unknown(_) => todo!(),
         }
     }
 }

@@ -1,6 +1,9 @@
+#![allow(unused)]
+
 use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
+use crate::assets::dialogue::DialogueCommand;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::midi::Midi;
@@ -116,7 +119,77 @@ impl Randomizer {
         }
 
         self.set_world_order(level_order.clone())?;
-        self.shuffle_molehills(level_order)?;
+        self.shuffle_molehills(level_order.clone())?;
+        self.replace_dialogues(level_order)?;
+
+        Ok(())
+    }
+
+    fn replace_dialogues(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
+        let mut order = order;
+        order.insert(LevelOrder::Lair.into(), LevelOrder::Lair);
+
+        for lang_id in 0..4 {
+            let lang: Language = lang_id.into();
+
+            // skip JP for now
+            if lang == Language::Japanese {
+                continue;
+            }
+
+            for asset in &mut self.assets {
+                match &mut asset.asset {
+                    Asset::Dialogue(dialogue) => {
+                        let mut level_replaced = false;
+                        for (id, level) in order.iter().enumerate() {
+                            if *level == LevelOrder::Lair {
+                                continue;
+                            }
+
+                            let orig_level: LevelOrder = id.into();
+
+                            if orig_level == *level {
+                                // level didn't change
+                                continue;
+                            }
+
+                            let orig_level_name = orig_level.get_name(lang);
+                            let level_name = level.get_name(lang);
+
+                            if let Some(dial) = dialogue.translations.get_mut(&lang) {
+                                for t in dial.top.iter_mut() {
+                                    if let DialogueCommand::Speak(_, text) = t {
+                                        if text.contains(orig_level_name) {
+                                            *text = text.replace(orig_level_name, level_name);
+                                            *text = text.replace("DE LE", "DU");
+                                            level_replaced = true;
+                                        }
+                                    }
+                                }
+
+                                for b in dial.bottom.iter_mut() {
+                                    if let DialogueCommand::Speak(_, text) = b {
+                                        if text.contains(orig_level_name) {
+                                            *text = text.replace(orig_level_name, level_name);
+                                            *text = text.replace("DE LE", "DU");
+                                            level_replaced = true;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // when A becomes B
+                            // and B becomes C
+                            // don't change A into C
+                            if level_replaced {
+                                break;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
 
         Ok(())
     }
