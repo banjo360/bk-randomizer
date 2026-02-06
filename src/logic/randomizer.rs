@@ -1,3 +1,5 @@
+use super::enums::Props;
+use super::location::Location;
 use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
@@ -5,6 +7,7 @@ use crate::assets::dialogue::DialogueCommand;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::map_setup::Prop1;
+use crate::assets::map_setup::Prop2;
 use crate::assets::midi::Midi;
 use crate::assets::model::Model;
 use crate::assets::question::Question;
@@ -21,6 +24,7 @@ use crate::utils::align_writer;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
+use rand::Rng;
 use rand::prelude::SliceRandom;
 use rand::rng;
 use std::error::Error;
@@ -309,33 +313,42 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn shuffle_entities(&mut self, entities: Vec<Category>) {
+    pub fn shuffle_entities(&mut self, actors: Vec<Category>, sprites: Vec<SpritePropId>) {
         for level in &LEVELS_INFO {
-            self.shuffle_entities_for_level(&entities, level);
+            self.shuffle_entities_for_level(&actors, &sprites, level);
         }
     }
 
-    fn shuffle_entities_for_level(&mut self, categories: &Vec<Category>, level: &LevelInfo) {
+    fn shuffle_entities_for_level(
+        &mut self,
+        actors: &Vec<Category>,
+        sprites: &Vec<SpritePropId>,
+        level: &LevelInfo,
+    ) {
         let mut grabbed_entities = vec![];
 
         for map in level.maps {
-            let mut grabbed = self.grab_entities_from_map(categories, map);
+            let mut grabbed = self.grab_entities_from_map(&actors, &sprites, map);
             grabbed_entities.append(&mut grabbed);
         }
 
-        grabbed_entities.shuffle(&mut rng());
+        let rng = &mut rng();
+        for _ in 0..(grabbed_entities.len() * 4) {
+            let a = rng.random_range(..grabbed_entities.len());
+            let b = rng.random_range(..grabbed_entities.len());
+            if a != b {
+                let prop = grabbed_entities[a].prop;
+                grabbed_entities[a].prop = grabbed_entities[b].prop;
+                grabbed_entities[b].prop = prop;
+            }
+        }
 
         for map in level.maps {
-            self.update_grabbed_entities_from_map(categories, &mut grabbed_entities, map);
+            self.insert_grabbed_entities_from_map(&grabbed_entities, map);
         }
     }
 
-    fn update_grabbed_entities_from_map(
-        &mut self,
-        categories: &Vec<Category>,
-        entities: &mut Vec<Prop1>,
-        map_id: &MapSetupId,
-    ) {
+    fn insert_grabbed_entities_from_map(&mut self, entities: &Vec<Location>, map_id: &MapSetupId) {
         let id: u16 = (*map_id).into();
         let map = &mut self.assets[id as usize].asset;
 
@@ -343,45 +356,106 @@ impl Randomizer {
             unreachable!();
         };
 
-        for cube in &mut map.cubes {
-            for prop in &mut cube.props_1 {
-                if categories.contains(&prop.category) {
-                    let new_prop = entities.remove(0);
-                    prop.category = new_prop.category;
-                    prop.selector_or_radius = new_prop.selector_or_radius;
-                    prop.unk_bit_0 = new_prop.unk_bit_0;
-                    prop.byte_0b = new_prop.byte_0b;
-                    prop.marker_id = new_prop.marker_id;
-                    prop.bitfield_0c = new_prop.bitfield_0c;
-                    prop.bitfield_10 = new_prop.bitfield_10;
+        for entity in entities {
+            if entity.map_id == *map_id {
+                match entity.prop {
+                    Props::Prop1(prop1) => {
+                        map.cubes[entity.cube_id].props_1.push(Prop1 {
+                            position: entity.position,
+                            selector_or_radius: prop1.selector_or_radius,
+                            category: prop1.category,
+                            unk_bit_0: prop1.unk_bit_0,
+                            marker_id: prop1.marker_id,
+                            byte_0b: prop1.byte_0b,
+                            bitfield_0c: prop1.bitfield_0c,
+                            bitfield_10: prop1.bitfield_10,
+                        });
+                    }
+                    Props::Prop2(prop2) => {
+                        let Prop2::Sprite {
+                            id,
+                            flags,
+                            position,
+                            bitfield_0a,
+                        } = prop2
+                        else {
+                            unreachable!();
+                        };
+
+                        map.cubes[entity.cube_id].props_2.push(Prop2::Sprite {
+                            id: id,
+                            flags: flags,
+                            position: entity.position,
+                            bitfield_0a: bitfield_0a,
+                        });
+                    }
                 }
             }
         }
     }
 
     fn grab_entities_from_map(
-        &self,
-        categories: &Vec<Category>,
+        &mut self,
+        actors: &Vec<Category>,
+        sprites: &Vec<SpritePropId>,
         map_id: &MapSetupId,
-    ) -> Vec<Prop1> {
+    ) -> Vec<Location> {
         let id: u16 = (*map_id).into();
-        let map = &self.assets[id as usize].asset;
+        let map = &mut self.assets[id as usize].asset;
 
         let Asset::MapSetup(map) = map else {
             unreachable!();
         };
 
-        let mut props = vec![];
+        let mut locations = vec![];
 
-        for cube in &map.cubes {
+        for (cube_id, cube) in map.cubes.iter_mut().enumerate() {
+            let mut saved_props = vec![];
+
             for prop in &cube.props_1 {
-                if categories.contains(&prop.category) {
-                    props.push(prop.clone());
+                if actors.contains(&prop.category) {
+                    locations.push(Location {
+                        map_id: *map_id,
+                        cube_id,
+                        position: prop.position,
+                        prop: Props::Prop1(prop.clone()),
+                    });
+                } else {
+                    saved_props.push(prop.clone());
                 }
             }
+
+            cube.props_1 = saved_props;
+
+            let mut saved_props = vec![];
+
+            for prop in &cube.props_2 {
+                if let Prop2::Sprite {
+                    id,
+                    flags,
+                    position,
+                    bitfield_0a,
+                } = *prop
+                {
+                    if sprites.contains(&id) {
+                        locations.push(Location {
+                            map_id: *map_id,
+                            cube_id,
+                            position,
+                            prop: Props::Prop2(*prop),
+                        });
+                    } else {
+                        saved_props.push(*prop);
+                    }
+                } else {
+                    saved_props.push(*prop);
+                }
+            }
+
+            cube.props_2 = saved_props;
         }
 
-        props
+        locations
     }
 
     pub fn remove_specific_actors(&mut self) -> Result<(), Box<dyn Error>> {

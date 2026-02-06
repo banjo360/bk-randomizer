@@ -2,7 +2,7 @@
 
 use crate::enums::ActorId;
 use assets::map_setup::Category;
-use enums::Language;
+use enums::{Language, SpritePropId};
 use logic::randomizer::Randomizer;
 use std::{error::Error, fs::File};
 use strings::Strings;
@@ -20,23 +20,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     // rando.shuffle_world_order()?;
     rando.remove_specific_actors()?;
 
-    let entities = vec![
-        Category::Actor(ActorId::MmmFlowerPot),
+    let actors = vec![
         Category::Actor(ActorId::BlubbersGold),
-        Category::Actor(ActorId::MumboToken),
-        Category::Actor(ActorId::Jiggy),
-        Category::Actor(ActorId::EmptyHoneycomb),
-        Category::Actor(ActorId::ExtraLife),
-        Category::Actor(ActorId::YellowJinjo),
-        Category::Actor(ActorId::OrangeJinjo),
         Category::Actor(ActorId::BlueJinjo),
-        Category::Actor(ActorId::PinkJinjo),
-        Category::Actor(ActorId::GreenJinjo),
         Category::Actor(ActorId::CollectableBluePresent),
         Category::Actor(ActorId::CollectableGreenPresent),
         Category::Actor(ActorId::CollectableRedPresent),
+        Category::Actor(ActorId::EmptyHoneycomb),
+        Category::Actor(ActorId::ExtraLife),
+        Category::Actor(ActorId::GreenJinjo),
+        Category::Actor(ActorId::Jiggy),
+        Category::Actor(ActorId::MmmFlowerPot),
+        Category::Actor(ActorId::MumboToken),
+        Category::Actor(ActorId::OrangeJinjo),
+        Category::Actor(ActorId::PinkJinjo),
+        Category::Actor(ActorId::YellowJinjo),
     ];
-    rando.shuffle_entities(entities);
+    let sprites = vec![
+        SpritePropId::BlueEgg,
+        SpritePropId::GoldFeather,
+        SpritePropId::MusicalNote,
+        SpritePropId::RedFeather,
+    ];
+    rando.shuffle_entities(actors, sprites);
 
     rando.save()?;
 

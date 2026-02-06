@@ -118,6 +118,22 @@ enum_builder! {
     }
 }
 
+enum_builder! {
+    #[repr(u16)]
+    pub enum SpritePropId {
+        RedFeather = 14,
+        BlueTulip = 70,
+        OrangeDaisy = 71,
+        RedDaisy = 80,
+        ConchShell = 289,
+        GoldFeather = 351,
+        ThinSeaweed = 354,
+        ThickSeaweed = 355,
+        MusicalNote = 356,
+        BlueEgg = 357,
+    }
+}
+
 pub mod actors;
 pub mod animations;
 pub mod credits;
