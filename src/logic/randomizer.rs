@@ -116,10 +116,18 @@ impl Randomizer {
                 break;
             }
 
-            // need to check shock jump too
             // if level 1 is CC, GV or FP
             // and levels 2, 3, 4 are CCW, RBB, MMM
-            // then all molehills are after the spring pad
+            // then all molehills are after GL's spring pad
+            if level_order
+                .iter()
+                .take(4)
+                .map(|m| m.molehill_count())
+                .sum::<usize>()
+                >= 2
+            {
+                break;
+            }
         }
 
         self.set_world_order(level_order.clone())?;
@@ -206,20 +214,27 @@ impl Randomizer {
             }
         }
 
-        let talon_trot_max_pos = LEVELS_INFO[order[0]].molehills.len();
+        let talon_trot_max_pos = order[0].molehill_count();
+        let shock_jump_max_pos = order
+            .iter()
+            .take(4)
+            .map(|m| m.molehill_count())
+            .sum::<usize>();
 
         loop {
             molehills.shuffle(&mut rng());
 
-            // since the first world need talon trot
+            // since the first world needs talon trot
             if molehills[0..talon_trot_max_pos]
                 .iter()
                 .any(|m| m.ability == Ability::TalonTrot)
+                // and shock jump is needed to access worlds 5+
+                && molehills[0..shock_jump_max_pos]
+                    .iter()
+                    .any(|m| m.ability == Ability::ShockJump)
             {
                 break;
             }
-
-            // need to check shock jump too
         }
 
         let mut xex = OpenOptions::new()
@@ -236,7 +251,7 @@ impl Randomizer {
 
                 xex.write_u16::<BigEndian>(molehills[mole_index].teach_text_id.into())?;
                 xex.write_u16::<BigEndian>(molehills[mole_index].refresher_text_id.into())?;
-                xex.read_u8()?; // easier than "skip"
+                xex.read_u8()?; // shorter than "skip"
                 xex.write_u8(molehills[mole_index].ability.into())?;
                 mole_index += 1;
             }
