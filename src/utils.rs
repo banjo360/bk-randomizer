@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
@@ -323,17 +321,45 @@ pub fn convert_from_banjo_string(buffer: Vec<u8>) -> String {
     target_buffer.iter().collect::<String>()
 }
 
-pub fn convert_iso_8859_1(buffer: Vec<u8>) -> String {
+pub fn convert_to_iso_8859_1(string: &String) -> Vec<u8> {
+    string
+        .chars()
+        .map(|b| match b {
+            '\n' => b'\n',
+            ' '..='~' => b as u8,
+            '\u{00a0}' => b as u8, // NBSP
+            'É' => 0xC9,
+            'Ü' => 0xDC,
+            'ß' => 0xDF,
+            'à' => 0xE0,
+            'ä' => 0xE4,
+            'è' => 0xE8,
+            'é' => 0xE9,
+            'ê' => 0xEA,
+            'ö' => 0xF6,
+            'ü' => 0xFC,
+            _ => panic!("unhandled char '{b}'"),
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn convert_from_iso_8859_1(buffer: Vec<u8>) -> String {
     buffer
         .iter()
         .map(|b| match b {
+            0x0A => '\n',
             0x20..=0x7E => *b as char,
             0xA0 => *b as char, // NBSP
             0xC9 => 'É',
+            0xDC => 'Ü',
+            0xDF => 'ß',
             0xE0 => 'à',
+            0xE4 => 'ä',
             0xE8 => 'è',
             0xE9 => 'é',
             0xEA => 'ê',
+            0xF6 => 'ö',
+            0xFC => 'ü',
             _ => panic!("unhandled byte {b:X}"),
         })
         .collect::<String>()

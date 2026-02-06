@@ -1,7 +1,4 @@
-#![allow(unused)]
-
 use crate::enum_builder;
-use crate::enums::map::MapId;
 use crate::enums::Ability;
 use crate::enums::ActorId;
 use crate::enums::DialogueId;
@@ -9,6 +6,7 @@ use crate::enums::Language;
 use crate::enums::MapSetupId;
 use crate::enums::TextureId;
 use crate::enums::WarpOrTriggerId;
+use crate::enums::map::MapId;
 use std::ops::Index;
 
 pub struct WarpLair {

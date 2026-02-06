@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::utils::read_2_floats;
 use crate::utils::read_3_floats;
 use byteorder::BigEndian;

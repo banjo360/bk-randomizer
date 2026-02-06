@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;

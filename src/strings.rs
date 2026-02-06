@@ -1,14 +1,16 @@
-#![allow(unused)]
 use crate::enums::Language;
 use crate::utils::convert_from_banjo_string;
-use crate::utils::convert_iso_8859_1;
+use crate::utils::convert_from_iso_8859_1;
 use crate::utils::convert_to_banjo_string;
+use crate::utils::convert_to_iso_8859_1;
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
+use byteorder::WriteBytesExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
 use std::io::Seek;
+use std::io::Write;
 
 enum StringId {}
 
@@ -47,6 +49,8 @@ impl Strings {
 
         let mut strings = vec![];
         for lang in 0..number_of_languages {
+            let language = LANGUAGE_MAPPING[lang];
+
             for str_id in 0..number_of_strings {
                 let len = sizes_per_language[lang][str_id];
                 let pos = reader.seek(std::io::SeekFrom::Current(0))?;
@@ -54,25 +58,16 @@ impl Strings {
                 reader.read(&mut buffer)?;
                 assert_eq!(reader.read_u8()?, 0);
 
-                let s = match lang {
-                    0 => String::from_utf8(buffer)?,
-                    1 => {
+                let s = match language {
+                    Language::English | Language::French | Language::German => {
                         if IS_BANJO_STRING[str_id] {
                             convert_from_banjo_string(buffer)
                         } else {
-                            convert_iso_8859_1(buffer)
+                            convert_from_iso_8859_1(buffer)
                         }
                     }
-                    2 => "".into(),
-                    3 => {
-                        if IS_BANJO_STRING[str_id] {
-                            convert_from_banjo_string(buffer)
-                        } else {
-                            println!("{str_id}: {buffer:?}");
-                            todo!()
-                        }
-                    }
-                    _ => todo!(),
+                    Language::Japanese => "".into(),
+                    Language::Unknown(_) => unreachable!(),
                 };
 
                 if lang == 0 {
@@ -86,12 +81,60 @@ impl Strings {
             }
         }
 
-        let pos = reader.seek(std::io::SeekFrom::Current(0))?;
-        println!("{pos:X}");
-
-        todo!();
-
         Ok(Self { strings })
+    }
+    pub fn write<W: Write + Seek>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
+        let number_of_strings = self.strings.len();
+        let number_of_languages = self.strings[0].translations.len();
+        writer.write_u16::<LittleEndian>(number_of_strings as u16)?;
+        writer.write_u16::<LittleEndian>(number_of_languages as u16)?;
+
+        let sizes_pos = writer.seek(std::io::SeekFrom::Current(0))?;
+        for _ in 0..number_of_languages {
+            writer.write_u32::<LittleEndian>(0);
+        }
+
+        for lang_id in 0..number_of_languages {
+            let lang = LANGUAGE_MAPPING[lang_id];
+            for string in &self.strings {
+                writer.write_u32::<LittleEndian>(string.translations[&lang].len() as u32 + 1);
+            }
+        }
+
+        let mut sizes_by_languages = vec![];
+        for lang_id in 0..number_of_languages {
+            let lang = LANGUAGE_MAPPING[lang_id];
+
+            let begin = writer.seek(std::io::SeekFrom::Current(0))?;
+            for (str_id, string) in self.strings.iter().enumerate() {
+                match lang {
+                    Language::Japanese => {
+                        // use English until JP encoding has been understood
+                        writer.write(string.translations[&Language::English].as_bytes())?;
+                    }
+                    Language::English | Language::French | Language::German => {
+                        let buffer = if IS_BANJO_STRING[str_id] {
+                            convert_to_banjo_string(&string.translations[&lang])
+                        } else {
+                            convert_to_iso_8859_1(&string.translations[&lang])
+                        };
+
+                        writer.write(&buffer)?;
+                    }
+                    Language::Unknown(_) => unreachable!(),
+                }
+                writer.write_u8(0)?;
+            }
+            let end = writer.seek(std::io::SeekFrom::Current(0))?;
+            sizes_by_languages.push(end - begin);
+        }
+
+        writer.seek(std::io::SeekFrom::Start(sizes_pos))?;
+        for i in 0..number_of_languages {
+            writer.write_u32::<LittleEndian>(sizes_by_languages[i] as u32);
+        }
+
+        Ok(())
     }
 }
 
