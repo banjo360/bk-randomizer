@@ -17,7 +17,7 @@ mod utils;
 fn main() -> Result<(), Box<dyn Error>> {
     let mut rando = Randomizer::new()?;
 
-    // rando.shuffle_world_order()?;
+    rando.shuffle_world_order()?;
     rando.remove_specific_actors()?;
 
     let actors = vec![

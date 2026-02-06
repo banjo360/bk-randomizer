@@ -340,6 +340,11 @@ impl Randomizer {
         sprites: &Vec<SpritePropId>,
         level: &LevelInfo,
     ) {
+        // it's the lair
+        if level.maps.len() == 0 {
+            return;
+        }
+
         let mut grabbed_entities = vec![];
 
         for map in level.maps {
