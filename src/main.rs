@@ -21,10 +21,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     rando.remove_specific_actors()?;
 
     let actors = vec![
+        Category::Actor(ActorId::Beehive),
         Category::Actor(ActorId::BlubbersGold),
         Category::Actor(ActorId::BlueJinjo),
+        Category::Actor(ActorId::ChimpysOrange),
+        Category::Actor(ActorId::CollectableBluePresent),
         Category::Actor(ActorId::CollectableBluePresent),
         Category::Actor(ActorId::CollectableGreenPresent),
+        Category::Actor(ActorId::CollectableGreenPresent),
+        Category::Actor(ActorId::CollectableRedPresent),
         Category::Actor(ActorId::CollectableRedPresent),
         Category::Actor(ActorId::EmptyHoneycomb),
         Category::Actor(ActorId::ExtraLife),
@@ -32,6 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Category::Actor(ActorId::Jiggy),
         Category::Actor(ActorId::MmmFlowerPot),
         Category::Actor(ActorId::MumboToken),
+        Category::Actor(ActorId::NabnutsAcorn),
         Category::Actor(ActorId::OrangeJinjo),
         Category::Actor(ActorId::PinkJinjo),
         Category::Actor(ActorId::YellowJinjo),
