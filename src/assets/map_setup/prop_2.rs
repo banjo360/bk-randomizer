@@ -25,8 +25,8 @@ impl Prop2 {
         let flags = reader.read_u32::<BigEndian>()?;
         let position = read_3_u16(reader)?;
         let ending = reader.read_u16::<BigEndian>()?;
-        assert_ne!(ending & 0b10, 1); // !is_3d and is_actor
-        assert_ne!(ending & 0b10, 3); // is_3d and is_actor
+        assert_ne!(ending & 0b11, 1); // !is_3d and is_actor
+        assert_ne!(ending & 0b11, 3); // is_3d and is_actor
 
         if (ending & 0b10) != 0 {
             let scale = (ending >> 8) as u8;

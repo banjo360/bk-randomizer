@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use crate::enums::ActorId;
+use assets::map_setup::Category;
 use enums::Language;
 use logic::randomizer::Randomizer;
 use std::{error::Error, fs::File};
@@ -15,8 +17,26 @@ mod utils;
 fn main() -> Result<(), Box<dyn Error>> {
     let mut rando = Randomizer::new()?;
 
-    rando.shuffle_world_order()?;
+    // rando.shuffle_world_order()?;
     rando.remove_specific_actors()?;
+
+    let entities = vec![
+        Category::Actor(ActorId::MmmFlowerPot),
+        Category::Actor(ActorId::BlubbersGold),
+        Category::Actor(ActorId::MumboToken),
+        Category::Actor(ActorId::Jiggy),
+        Category::Actor(ActorId::EmptyHoneycomb),
+        Category::Actor(ActorId::ExtraLife),
+        Category::Actor(ActorId::YellowJinjo),
+        Category::Actor(ActorId::OrangeJinjo),
+        Category::Actor(ActorId::BlueJinjo),
+        Category::Actor(ActorId::PinkJinjo),
+        Category::Actor(ActorId::GreenJinjo),
+        Category::Actor(ActorId::CollectableBluePresent),
+        Category::Actor(ActorId::CollectableGreenPresent),
+        Category::Actor(ActorId::CollectableRedPresent),
+    ];
+    rando.shuffle_entities(entities);
 
     rando.save()?;
 

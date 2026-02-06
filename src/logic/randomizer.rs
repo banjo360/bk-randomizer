@@ -4,6 +4,7 @@ use crate::assets::dialogue::Dialogue;
 use crate::assets::dialogue::DialogueCommand;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
+use crate::assets::map_setup::Prop1;
 use crate::assets::midi::Midi;
 use crate::assets::model::Model;
 use crate::assets::question::Question;
@@ -11,6 +12,7 @@ use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
 use crate::data::db360::ASSETS;
 use crate::data::levels::LEVELS_INFO;
+use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
@@ -305,6 +307,81 @@ impl Randomizer {
         xex.write_u16::<BigEndian>(old_level.warp_lair.exit_id)?;
 
         Ok(())
+    }
+
+    pub fn shuffle_entities(&mut self, entities: Vec<Category>) {
+        for level in &LEVELS_INFO {
+            self.shuffle_entities_for_level(&entities, level);
+        }
+    }
+
+    fn shuffle_entities_for_level(&mut self, categories: &Vec<Category>, level: &LevelInfo) {
+        let mut grabbed_entities = vec![];
+
+        for map in level.maps {
+            let mut grabbed = self.grab_entities_from_map(categories, map);
+            grabbed_entities.append(&mut grabbed);
+        }
+
+        grabbed_entities.shuffle(&mut rng());
+
+        for map in level.maps {
+            self.update_grabbed_entities_from_map(categories, &mut grabbed_entities, map);
+        }
+    }
+
+    fn update_grabbed_entities_from_map(
+        &mut self,
+        categories: &Vec<Category>,
+        entities: &mut Vec<Prop1>,
+        map_id: &MapSetupId,
+    ) {
+        let id: u16 = (*map_id).into();
+        let map = &mut self.assets[id as usize].asset;
+
+        let Asset::MapSetup(map) = map else {
+            unreachable!();
+        };
+
+        for cube in &mut map.cubes {
+            for prop in &mut cube.props_1 {
+                if categories.contains(&prop.category) {
+                    let new_prop = entities.remove(0);
+                    prop.category = new_prop.category;
+                    prop.selector_or_radius = new_prop.selector_or_radius;
+                    prop.unk_bit_0 = new_prop.unk_bit_0;
+                    prop.byte_0b = new_prop.byte_0b;
+                    prop.marker_id = new_prop.marker_id;
+                    prop.bitfield_0c = new_prop.bitfield_0c;
+                    prop.bitfield_10 = new_prop.bitfield_10;
+                }
+            }
+        }
+    }
+
+    fn grab_entities_from_map(
+        &self,
+        categories: &Vec<Category>,
+        map_id: &MapSetupId,
+    ) -> Vec<Prop1> {
+        let id: u16 = (*map_id).into();
+        let map = &self.assets[id as usize].asset;
+
+        let Asset::MapSetup(map) = map else {
+            unreachable!();
+        };
+
+        let mut props = vec![];
+
+        for cube in &map.cubes {
+            for prop in &cube.props_1 {
+                if categories.contains(&prop.category) {
+                    props.push(prop.clone());
+                }
+            }
+        }
+
+        props
     }
 
     pub fn remove_specific_actors(&mut self) -> Result<(), Box<dyn Error>> {
