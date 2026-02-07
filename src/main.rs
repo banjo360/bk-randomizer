@@ -4,6 +4,7 @@ use crate::enums::ActorId;
 use assets::map_setup::Category;
 use enums::{Language, SpritePropId};
 use logic::randomizer::Randomizer;
+use serde::Deserialize;
 use std::{error::Error, fs::File};
 use strings::Strings;
 
@@ -14,46 +15,49 @@ mod logic;
 mod strings;
 mod utils;
 
+#[derive(Debug, Default, Deserialize)]
+struct Config {
+    #[serde(default)]
+    actors: Vec<ActorId>,
+
+    #[serde(default)]
+    sprites: Vec<SpritePropId>,
+
+    #[serde(default)]
+    mix: bool,
+
+    #[serde(default)]
+    worlds: bool,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let strbuf = std::fs::read_to_string("config.json").unwrap();
+    let Ok(config) = serde_json::from_str::<Config>(&strbuf) else {
+        eprintln!("config.json is malformed!");
+        return Ok(());
+    };
+
     let mut rando = Randomizer::new()?;
 
-    rando.shuffle_world_order()?;
+    println!("shuffle worlds");
+    if config.worlds {
+        rando.shuffle_world_order()?;
+    }
     rando.remove_specific_actors()?;
 
-    let actors = vec![
-        Category::Actor(ActorId::Beehive),
-        Category::Actor(ActorId::BlubbersGold),
-        Category::Actor(ActorId::BlueJinjo),
-        Category::Actor(ActorId::ChimpysOrange),
-        Category::Actor(ActorId::CollectableBluePresent),
-        Category::Actor(ActorId::CollectableBluePresent),
-        Category::Actor(ActorId::CollectableGreenPresent),
-        Category::Actor(ActorId::CollectableGreenPresent),
-        Category::Actor(ActorId::CollectableRedPresent),
-        Category::Actor(ActorId::CollectableRedPresent),
-        Category::Actor(ActorId::EmptyHoneycomb),
-        Category::Actor(ActorId::ExtraLife),
-        Category::Actor(ActorId::GreenJinjo),
-        Category::Actor(ActorId::Jiggy),
-        Category::Actor(ActorId::MmmFlowerPot),
-        Category::Actor(ActorId::MumboToken),
-        Category::Actor(ActorId::NabnutsAcorn),
-        Category::Actor(ActorId::OrangeJinjo),
-        Category::Actor(ActorId::PinkJinjo),
-        Category::Actor(ActorId::YellowJinjo),
-    ];
-    let sprites = vec![
-        SpritePropId::BlueEgg,
-        SpritePropId::GoldFeather,
-        SpritePropId::MusicalNote,
-        SpritePropId::RedFeather,
-    ];
-    rando.shuffle_entities(actors, sprites);
+    println!("shuffle entities");
+    if config.mix {
+        rando.shuffle_entities(config.actors, config.sprites);
+    } else {
+        rando.shuffle_entities(config.actors, vec![]);
+        rando.shuffle_entities(vec![], config.sprites);
+    }
 
+    println!("write everything");
     rando.save()?;
 
     // check the rando can read what it wrote
-    let _rando = Randomizer::new()?;
+    // let _rando = Randomizer::new()?;
 
     // For some reason, doesn't work (strings point to the wrong offset)
     // let mut reader = File::open("X360_strings.dat.bin")?;

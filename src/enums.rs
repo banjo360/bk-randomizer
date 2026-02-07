@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 pub use self::actors::ActorId;
 pub use self::animations::AnimationId;
 pub use self::credits::CreditsId;
@@ -120,6 +122,7 @@ enum_builder! {
 
 enum_builder! {
     #[repr(u16)]
+    #[derive(Deserialize)]
     pub enum SpritePropId {
         RedFeather = 14,
         BlueTulip = 70,

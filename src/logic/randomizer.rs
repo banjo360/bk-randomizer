@@ -108,13 +108,12 @@ impl Randomizer {
             LevelOrder::MadMonsterMansion,
         ];
 
-        loop {
-            level_order.shuffle(&mut rng());
+        // the first world need talon trot
+        level_order[..6].shuffle(&mut rng());
+        assert!(level_order[0].has_molehill());
 
-            // since the first world need talon trot
-            if level_order[0].has_molehill() {
-                break;
-            }
+        loop {
+            level_order[1..].shuffle(&mut rng());
 
             // if level 1 is CC, GV or FP
             // and levels 2, 3, 4 are CCW, RBB, MMM
@@ -131,7 +130,9 @@ impl Randomizer {
         }
 
         self.set_world_order(level_order.clone())?;
+        println!("shuffle molehills");
         self.shuffle_molehills(level_order.clone())?;
+        println!("replace dialogues");
         self.replace_dialogues(level_order)?;
 
         Ok(())
@@ -328,7 +329,7 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn shuffle_entities(&mut self, actors: Vec<Category>, sprites: Vec<SpritePropId>) {
+    pub fn shuffle_entities(&mut self, actors: Vec<ActorId>, sprites: Vec<SpritePropId>) {
         for level in &LEVELS_INFO {
             self.shuffle_entities_for_level(&actors, &sprites, level);
         }
@@ -336,7 +337,7 @@ impl Randomizer {
 
     fn shuffle_entities_for_level(
         &mut self,
-        actors: &Vec<Category>,
+        actors: &Vec<ActorId>,
         sprites: &Vec<SpritePropId>,
         level: &LevelInfo,
     ) {
@@ -416,7 +417,7 @@ impl Randomizer {
 
     fn grab_entities_from_map(
         &mut self,
-        actors: &Vec<Category>,
+        actors: &Vec<ActorId>,
         sprites: &Vec<SpritePropId>,
         map_id: &MapSetupId,
     ) -> Vec<Location> {
@@ -433,13 +434,17 @@ impl Randomizer {
             let mut saved_props = vec![];
 
             for prop in &cube.props_1 {
-                if actors.contains(&prop.category) {
-                    locations.push(Location {
-                        map_id: *map_id,
-                        cube_id,
-                        position: prop.position,
-                        prop: Props::Prop1(prop.clone()),
-                    });
+                if let Category::Actor(actor_id) = prop.category {
+                    if actors.contains(&actor_id) {
+                        locations.push(Location {
+                            map_id: *map_id,
+                            cube_id,
+                            position: prop.position,
+                            prop: Props::Prop1(prop.clone()),
+                        });
+                    } else {
+                        saved_props.push(prop.clone());
+                    }
                 } else {
                     saved_props.push(prop.clone());
                 }

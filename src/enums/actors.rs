@@ -1,7 +1,9 @@
 use crate::enum_builder;
+use serde::Deserialize;
 
 enum_builder! {
     #[repr(u16)]
+    #[derive(Deserialize)]
     pub enum ActorId {
         EntryPoint1 = 1,
         EntryPoint2 = 2,
