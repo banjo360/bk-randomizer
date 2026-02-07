@@ -9,7 +9,7 @@ use std::io::Read;
 use std::io::Write;
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Category {
     WarpOrTrigger(WarpOrTriggerId),
     CameraController(u16),
@@ -51,7 +51,7 @@ impl std::fmt::Display for Category {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Prop1 {
     pub position: Vector3<i16>,
     pub selector_or_radius: u16,

@@ -5,7 +5,7 @@ use assets::map_setup::Category;
 use enums::{Language, SpritePropId};
 use logic::randomizer::Randomizer;
 use serde::Deserialize;
-use std::{error::Error, fs::File};
+use std::error::Error;
 use strings::Strings;
 
 mod assets;
@@ -39,11 +39,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut rando = Randomizer::new()?;
 
-    println!("shuffle worlds");
     if config.worlds {
+        println!("shuffle worlds");
         rando.shuffle_world_order()?;
     }
     rando.remove_specific_actors()?;
+    rando.change_randomizer_dialogues();
 
     println!("shuffle entities");
     if config.mix {

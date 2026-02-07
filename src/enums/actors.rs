@@ -131,3 +131,14 @@ enum_builder! {
         BlackGruntling = 960,
     }
 }
+
+impl ActorId {
+    pub fn needs_flag(&self) -> bool {
+        match self {
+            Self::Jiggy => true,
+            Self::MumboToken => true,
+            Self::EmptyHoneycomb => true,
+            _ => false,
+        }
+    }
+}

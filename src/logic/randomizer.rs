@@ -21,6 +21,7 @@ use crate::data::levels::LevelOrder;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
 use crate::enums::*;
+use crate::utils::Vector3;
 use crate::utils::align_writer;
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
@@ -202,12 +203,10 @@ impl Randomizer {
             }
         }
 
-        self.change_randomizer_dialogues();
-
         Ok(())
     }
 
-    fn change_randomizer_dialogues(&mut self) {
+    pub fn change_randomizer_dialogues(&mut self) {
         self.set_dialogue(
             DialogueId::BottlesIntro,
             vec![
@@ -428,6 +427,9 @@ impl Randomizer {
                 let prop = grabbed_entities[a].prop;
                 grabbed_entities[a].prop = grabbed_entities[b].prop;
                 grabbed_entities[b].prop = prop;
+                let linked = grabbed_entities[a].linked;
+                grabbed_entities[a].linked = grabbed_entities[b].linked;
+                grabbed_entities[b].linked = linked;
             }
         }
 
@@ -458,6 +460,11 @@ impl Randomizer {
                             bitfield_0c: prop1.bitfield_0c,
                             bitfield_10: prop1.bitfield_10,
                         });
+
+                        if let Some(mut linked) = entity.linked {
+                            linked.position = entity.position;
+                            map.cubes[entity.cube_id].props_1.push(linked);
+                        }
                     }
                     Props::Prop2(prop2) => {
                         let Prop2::Sprite {
@@ -497,17 +504,42 @@ impl Randomizer {
 
         let mut locations = vec![];
 
+        let mut saved_flags = vec![];
+        for (cube_id, cube) in map.cubes.iter_mut().enumerate() {
+            for prop in &cube.props_1 {
+                if let Category::Flags(flag_id) = prop.category {
+                    saved_flags.push(*prop);
+                }
+            }
+
+            cube.props_1.retain(|p| {
+                if let Category::Flags(flag_id) = p.category {
+                    false
+                } else {
+                    true
+                }
+            });
+        }
+
         for (cube_id, cube) in map.cubes.iter_mut().enumerate() {
             let mut saved_props = vec![];
 
             for prop in &cube.props_1 {
                 if let Category::Actor(actor_id) = prop.category {
                     if actors.contains(&actor_id) {
+                        let linked = if actor_id.needs_flag() {
+                            let f = find_closest_flag(&prop.position, &mut saved_flags);
+                            Some(f)
+                        } else {
+                            None
+                        };
+
                         locations.push(Location {
                             map_id: *map_id,
                             cube_id,
                             position: prop.position,
                             prop: Props::Prop1(prop.clone()),
+                            linked,
                         });
                     } else {
                         saved_props.push(prop.clone());
@@ -535,6 +567,7 @@ impl Randomizer {
                             cube_id,
                             position,
                             prop: Props::Prop2(*prop),
+                            linked: None,
                         });
                     } else {
                         saved_props.push(*prop);
@@ -545,6 +578,24 @@ impl Randomizer {
             }
 
             cube.props_2 = saved_props;
+        }
+
+        if !saved_flags.is_empty() {
+            for flag in saved_flags {
+                let mut inserted = true;
+                for cube in &mut map.cubes {
+                    if flag.position.x as i32 / 1000 == cube.x / 1000
+                        && flag.position.y as i32 / 1000 == cube.y / 1000
+                        && flag.position.z as i32 / 1000 == cube.z / 1000
+                    {
+                        cube.props_1.push(flag);
+                    }
+                }
+
+                if !inserted {
+                    todo!();
+                }
+            }
         }
 
         locations
@@ -788,4 +839,31 @@ fn read_textures() -> Result<Vec<TextureData>, Box<dyn Error>> {
     }
 
     Ok(addresses)
+}
+
+fn find_closest_flag(position: &Vector3<i16>, flags: &mut Vec<Prop1>) -> Prop1 {
+    let mut closest = (99999999, None);
+    for (idx, f) in flags.iter().enumerate() {
+        let dist = distance(position, &f.position);
+
+        if dist < closest.0 {
+            closest.0 = dist;
+            closest.1 = Some(idx);
+        }
+    }
+
+    if closest.1.is_none() {
+        panic!("{}", closest.0);
+    }
+
+    assert!(closest.0.isqrt() < 150);
+    flags.remove(closest.1.unwrap())
+}
+
+fn distance(a: &Vector3<i16>, b: &Vector3<i16>) -> u32 {
+    let x = (a.x - b.x).abs() as u32;
+    let y = 0; //(a.y - b.y).abs() as u32;
+    let z = (a.z - b.z).abs() as u32;
+
+    x * x + y * y + z * z
 }
