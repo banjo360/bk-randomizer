@@ -1,0 +1,29 @@
+{
+    "actors": [
+        "Beehive",
+        "BlubbersGold",
+        "BlueJinjo",
+        "ChimpysOrange",
+        "CollectableBluePresent",
+        "CollectableGreenPresent",
+        "CollectableRedPresent",
+        "EmptyHoneycomb",
+        "ExtraLife",
+        "GreenJinjo",
+        "Jiggy",
+        "MmmFlowerPot",
+        "MumboToken",
+        "NabnutsAcorn",
+        "OrangeJinjo",
+        "PinkJinjo",
+        "YellowJinjo"
+    ],
+    "sprites": [
+        "BlueEgg",
+        "GoldFeather",
+        "MusicalNote",
+        "RedFeather"
+    ],
+    "mix": true,
+    "worlds": true
+}

@@ -66,11 +66,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // *strings.strings[167]
     //     .translations
     //     .get_mut(&Language::English)
-    //     .unwrap() = "RANDOMIZER BY MINIROP.".to_owned();
+    //     .unwrap() = "RANDOMIZER BY MINIROP".to_owned();
     // *strings.strings[167]
     //     .translations
     //     .get_mut(&Language::French)
-    //     .unwrap() = "RANDOMIZER PAR MINIROP.".to_owned();
+    //     .unwrap() = "RANDOMIZER PAR MINIROP".to_owned();
 
     // let mut writer = File::create("X360_strings.dat")?;
     // strings.write(&mut writer)?;

@@ -4,6 +4,7 @@ use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
 use crate::assets::dialogue::DialogueCommand;
+use crate::assets::dialogue::Speaker;
 use crate::assets::map_setup::Category;
 use crate::assets::map_setup::MapSetup;
 use crate::assets::map_setup::Prop1;
@@ -108,23 +109,20 @@ impl Randomizer {
             LevelOrder::MadMonsterMansion,
         ];
 
-        // the first world need talon trot
-        level_order[..6].shuffle(&mut rng());
+        // the first world need talon trot (but can't be GV)
+        level_order[..5].shuffle(&mut rng());
         assert!(level_order[0].has_molehill());
 
         loop {
             level_order[1..].shuffle(&mut rng());
 
-            // if level 1 is CC, GV or FP
-            // and levels 2, 3, 4 are CCW, RBB, MMM
-            // then all molehills are after GL's spring pad
-            if level_order
-                .iter()
-                .take(4)
-                .map(|m| m.molehill_count())
-                .sum::<usize>()
-                >= 2
-            {
+            let l0 = level_order[0].molehill_count(); // MM
+            let l1 = level_order[1].molehill_count(); // TTC
+            let l2 = level_order[2].molehill_count(); // CC
+            let l3 = level_order[3].molehill_count(); // BGS
+
+            // need beak buster before CC and shock jump before FP
+            if l0 + l1 >= 2 && l0 + l1 + l2 + l3 >= 3 {
                 break;
             }
         }
@@ -204,7 +202,70 @@ impl Randomizer {
             }
         }
 
+        self.change_randomizer_dialogues();
+
         Ok(())
+    }
+
+    fn change_randomizer_dialogues(&mut self) {
+        self.set_dialogue(
+            DialogueId::BottlesIntro,
+            vec![
+                DialogueCommand::SwitchBox,
+                DialogueCommand::Speak(Speaker::Banjo, "WHAT IS THAT?".into()),
+                DialogueCommand::Speak(Speaker::Kazooie, "THINGS ARE ALL SHUFFLED RANDOMLY".into()),
+                DialogueCommand::Speak(Speaker::Banjo, "SOUNDS INTERESTING!".into()),
+                DialogueCommand::EndOfSection,
+            ],
+            vec![
+                DialogueCommand::Speak(Speaker::Bottles, "WELCOME TO THE RANDOMIZER".into()),
+                DialogueCommand::SwitchBox,
+                DialogueCommand::EndOfSection,
+            ],
+        );
+
+        self.set_dialogue(
+            DialogueId::BottlesIntroQuestion,
+            vec![DialogueCommand::SwitchBox, DialogueCommand::EndOfSection],
+            vec![
+                DialogueCommand::Speak(Speaker::Bottles, "YOU KNOW THE GAME, JUST PRESS B.".into()),
+                DialogueCommand::EndOfSection,
+            ],
+        );
+
+        self.set_dialogue(
+            DialogueId::BottlesIntroTutorialSkipped,
+            vec![DialogueCommand::SwitchBox, DialogueCommand::EndOfSection],
+            vec![
+                DialogueCommand::Speak(Speaker::Bottles, "OK, NOW GET LOST!".into()),
+                DialogueCommand::Trigger(6),
+                DialogueCommand::EndOfSection,
+            ],
+        );
+
+        self.set_dialogue(DialogueId::BottlesTopOfSpiralMountainTutorialSkipped,
+            vec![DialogueCommand::SwitchBox, DialogueCommand::EndOfSection],
+            vec![
+                DialogueCommand::Speak(Speaker::Bottles, "YOU KNOW THE DRILL! KICK GRUNTY'S BUTT, SAVE TOOTY, FANFARE, EVERYBODY'S HAPPY.".into()),
+                DialogueCommand::EndOfSection,
+            ],
+        );
+    }
+
+    fn set_dialogue(
+        &mut self,
+        id: DialogueId,
+        top: Vec<DialogueCommand>,
+        bottom: Vec<DialogueCommand>,
+    ) {
+        let dial_id: u16 = id.into();
+        if let Some(asset_data) = self.assets.get_mut(dial_id as usize) {
+            if let Asset::Dialogue(dialogue) = &mut asset_data.asset {
+                let mut data = dialogue.translations.get_mut(&Language::English).unwrap();
+                data.top = top;
+                data.bottom = bottom;
+            }
+        }
     }
 
     fn shuffle_molehills(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
@@ -215,12 +276,14 @@ impl Randomizer {
             }
         }
 
-        let talon_trot_max_pos = order[0].molehill_count();
-        let shock_jump_max_pos = order
-            .iter()
-            .take(4)
-            .map(|m| m.molehill_count())
-            .sum::<usize>();
+        let l0 = order[0].molehill_count(); // MM
+        let l1 = order[1].molehill_count(); // TTC
+        let l2 = order[2].molehill_count(); // CC
+        let l3 = order[3].molehill_count(); // BGS
+
+        let talon_trot_max_pos = l0;
+        let beak_buster_max_pos = l0 + l1;
+        let shock_jump_max_pos = l0 + l1 + l2 + l3;
 
         loop {
             molehills.shuffle(&mut rng());
@@ -229,6 +292,10 @@ impl Randomizer {
             if molehills[0..talon_trot_max_pos]
                 .iter()
                 .any(|m| m.ability == Ability::TalonTrot)
+                // and shock jump is needed to access world 3
+                && molehills[0..beak_buster_max_pos]
+                    .iter()
+                    .any(|m| m.ability == Ability::BeakBuster)
                 // and shock jump is needed to access worlds 5+
                 && molehills[0..shock_jump_max_pos]
                     .iter()

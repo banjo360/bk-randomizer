@@ -112,7 +112,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DialogueCommand {
     MrVileCheck,
     BottlesCheck,
