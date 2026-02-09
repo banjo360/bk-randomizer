@@ -307,7 +307,8 @@ impl Randomizer {
         let mut xex = OpenOptions::new()
             .read(true)
             .write(true)
-            .open("default.xex")?;
+            .open("default.xex")
+            .expect("Can't open default.xex, missing?");
 
         let mut mole_index = 0;
         for level in &order {
@@ -386,7 +387,10 @@ impl Randomizer {
             }
         }
 
-        let mut xex = OpenOptions::new().write(true).open("default.xex")?;
+        let mut xex = OpenOptions::new()
+            .write(true)
+            .open("default.xex")
+            .expect("Can't open default.xex, missing?");
         let new_order: usize = new.into();
         xex.seek(SeekFrom::Start(LAIR_WARPS_TARGET + new_order as u64 * 4))?;
         xex.write_u16::<BigEndian>(old_level.warp_lair.map_id.into())?;
@@ -639,7 +643,8 @@ impl Randomizer {
             .create(true)
             .write(true)
             .truncate(true)
-            .open("db360.cmp")?;
+            .open("db360.cmp")
+            .expect("Can't write db360.cmp");
 
         patched.write_u32::<BigEndian>(entry_count as u32)?;
         patched.write_u32::<BigEndian>(0xCDCDCDCD)?;
@@ -697,7 +702,10 @@ impl Randomizer {
     }
 
     fn write_textures(&self) -> Result<(), Box<dyn Error>> {
-        let mut file = OpenOptions::new().write(true).open("db360.textures.cmp")?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open("db360.textures.cmp")
+            .expect("Can't write db360.textures.cmp");
         let metadata_size = 20;
 
         file.seek_relative(4)?;
@@ -712,7 +720,7 @@ impl Randomizer {
 }
 
 fn read_db360() -> Result<Vec<AssetData>, Box<dyn Error>> {
-    let mut file = File::open("db360.cmp")?;
+    let mut file = File::open("db360.cmp").expect("Can't open db360.cmp, missing?");
 
     let entry_count = file.read_u32::<BigEndian>()?;
     assert_eq!(entry_count, 3701);
@@ -823,7 +831,8 @@ fn read_db360() -> Result<Vec<AssetData>, Box<dyn Error>> {
 }
 
 fn read_textures() -> Result<Vec<TextureData>, Box<dyn Error>> {
-    let mut file = File::open("db360.textures.cmp")?;
+    let mut file =
+        File::open("db360.textures.cmp").expect("Can't open db360.textures.cmp, missing?");
     let entry_count = file.read_u32::<BigEndian>()?;
     assert_eq!(entry_count, 6576);
     let metadata_size = 20;
