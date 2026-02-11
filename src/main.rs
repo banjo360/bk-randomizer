@@ -28,6 +28,12 @@ struct Config {
 
     #[serde(default)]
     worlds: bool,
+
+    #[serde(default)]
+    moves: bool,
+
+    #[serde(default)]
+    notedoors: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,6 +58,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         rando.shuffle_entities(config.actors, vec![]);
         rando.shuffle_entities(vec![], config.sprites);
+    }
+
+    if config.moves {
+        rando.unlock_moves();
+    }
+
+    if config.notedoors {
+        rando.remove_note_doors();
     }
 
     println!("write everything");

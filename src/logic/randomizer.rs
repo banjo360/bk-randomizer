@@ -20,6 +20,7 @@ use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
+use crate::data::xex::NOTE_DOORS_COSTS;
 use crate::enums::*;
 use crate::utils::Vector3;
 use crate::utils::align_writer;
@@ -137,6 +138,26 @@ impl Randomizer {
         Ok(())
     }
 
+    pub fn unlock_moves(&self) {
+        //
+    }
+
+    pub fn remove_note_doors(&self) -> Result<(), Box<dyn Error>> {
+        // crude way, all doors pre-810 cost 0
+        let mut xex = OpenOptions::new()
+            .write(true)
+            .open("default.xex")
+            .expect("Can't open default.xex, missing?");
+
+        xex.seek(SeekFrom::Start(NOTE_DOORS_COSTS))?;
+
+        for _ in 0..7 {
+            xex.write_u16::<BigEndian>(0)?;
+        }
+
+        Ok(())
+    }
+
     fn replace_dialogues(&mut self, order: Vec<LevelOrder>) -> Result<(), Box<dyn Error>> {
         let mut order = order;
         order.insert(LevelOrder::Lair.into(), LevelOrder::Lair);
@@ -203,6 +224,31 @@ impl Randomizer {
             }
         }
 
+        // shorter bottles' dialogues
+        const MOVES_NAMES_DIALOGUES: [(DialogueId, &'static str); 9] = [
+            (DialogueId::BottlesLearningEggs, "EGGS"),
+            (DialogueId::BottlesLearningBeakBuster, "BEAK BUSTER"),
+            (DialogueId::BottlesLearningTalonTrot, "TALON TROT"),
+            (DialogueId::BottlesLearningShockJump, "SHOCK JUMP"),
+            (DialogueId::BottlesLearningFlight, "FLIGHT"),
+            (DialogueId::BottlesLearningWonderwing, "WONDERWING"),
+            (DialogueId::BottlesLearningWadingBoots, "WADING BOOTS"),
+            (DialogueId::BottlesLearningBeakBomb, "BEAK BOMB"),
+            (DialogueId::BottlesLearningTurboTalon, "TURBO TALON TROT"),
+        ];
+
+        for (dial_id, name) in MOVES_NAMES_DIALOGUES {
+            self.set_dialogue(
+                dial_id,
+                vec![DialogueCommand::EndOfSection],
+                vec![
+                    DialogueCommand::Speak(Speaker::Bottles, name.into()),
+                    DialogueCommand::EndOfSection,
+                ],
+                Language::English,
+            );
+        }
+
         Ok(())
     }
 
@@ -221,6 +267,7 @@ impl Randomizer {
                 DialogueCommand::SwitchBox,
                 DialogueCommand::EndOfSection,
             ],
+            Language::English,
         );
 
         self.set_dialogue(
@@ -230,6 +277,7 @@ impl Randomizer {
                 DialogueCommand::Speak(Speaker::Bottles, "YOU KNOW THE GAME, JUST PRESS B.".into()),
                 DialogueCommand::EndOfSection,
             ],
+            Language::English,
         );
 
         self.set_dialogue(
@@ -237,17 +285,19 @@ impl Randomizer {
             vec![DialogueCommand::SwitchBox, DialogueCommand::EndOfSection],
             vec![
                 DialogueCommand::Speak(Speaker::Bottles, "OK, NOW GET LOST!".into()),
-                DialogueCommand::Trigger(6),
                 DialogueCommand::EndOfSection,
             ],
+            Language::English,
         );
 
-        self.set_dialogue(DialogueId::BottlesTopOfSpiralMountainTutorialSkipped,
+        self.set_dialogue(
+            DialogueId::BottlesTopOfSpiralMountainTutorialSkipped,
             vec![DialogueCommand::SwitchBox, DialogueCommand::EndOfSection],
             vec![
-                DialogueCommand::Speak(Speaker::Bottles, "YOU KNOW THE DRILL! KICK GRUNTY'S BUTT, SAVE TOOTY, FANFARE, EVERYBODY'S HAPPY.".into()),
+                DialogueCommand::Speak(Speaker::Bottles, "YOU FAILED THE SKIP. BOO! LOSER!".into()),
                 DialogueCommand::EndOfSection,
             ],
+            Language::English,
         );
     }
 
@@ -256,11 +306,12 @@ impl Randomizer {
         id: DialogueId,
         top: Vec<DialogueCommand>,
         bottom: Vec<DialogueCommand>,
+        lang: Language,
     ) {
         let dial_id: u16 = id.into();
         if let Some(asset_data) = self.assets.get_mut(dial_id as usize) {
             if let Asset::Dialogue(dialogue) = &mut asset_data.asset {
-                let mut data = dialogue.translations.get_mut(&Language::English).unwrap();
+                let mut data = dialogue.translations.get_mut(&lang).unwrap();
                 data.top = top;
                 data.bottom = bottom;
             }
