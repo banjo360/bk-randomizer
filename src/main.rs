@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if config.worlds {
         println!("shuffle worlds");
-        rando.shuffle_world_order()?;
+        rando.shuffle_world_order(config.moves)?;
     }
 
     rando.fix_ttc_blue_egg();

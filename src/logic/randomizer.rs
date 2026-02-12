@@ -106,7 +106,7 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn shuffle_world_order(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn shuffle_world_order(&mut self, all_moves_unlocked: bool) -> Result<(), Box<dyn Error>> {
         let mut level_order = vec![
             LevelOrder::MumbosMountain,
             LevelOrder::TreasureTroveCove,
@@ -119,27 +119,33 @@ impl Randomizer {
             LevelOrder::MadMonsterMansion,
         ];
 
-        // the first world need talon trot (but can't be GV)
-        level_order[..5].shuffle(&mut rng());
-        assert!(level_order[0].has_molehill());
+        if all_moves_unlocked {
+            // if all moves are unlocked, the order doesn't matter
+            level_order.shuffle(&mut rng());
+        } else {
+            // the first world need talon trot (but can't be GV)
+            level_order[..5].shuffle(&mut rng());
+            assert!(level_order[0].has_molehill());
 
-        loop {
-            level_order[1..].shuffle(&mut rng());
+            loop {
+                level_order[1..].shuffle(&mut rng());
 
-            let l0 = level_order[0].molehill_count(); // MM
-            let l1 = level_order[1].molehill_count(); // TTC
-            let l2 = level_order[2].molehill_count(); // CC
-            let l3 = level_order[3].molehill_count(); // BGS
+                let l0 = level_order[0].molehill_count(); // MM
+                let l1 = level_order[1].molehill_count(); // TTC
+                let l2 = level_order[2].molehill_count(); // CC
+                let l3 = level_order[3].molehill_count(); // BGS
 
-            // need beak buster before CC and shock jump before FP
-            if l0 + l1 >= 2 && l0 + l1 + l2 + l3 >= 3 {
-                break;
+                // need beak buster before CC and shock jump before FP
+                if l0 + l1 >= 2 && l0 + l1 + l2 + l3 >= 3 {
+                    break;
+                }
             }
+
+            println!("shuffle molehills");
+            self.shuffle_molehills(level_order.clone())?;
         }
 
         self.set_world_order(level_order.clone())?;
-        println!("shuffle molehills");
-        self.shuffle_molehills(level_order.clone())?;
         println!("replace dialogues");
         self.replace_dialogues(level_order)?;
 
