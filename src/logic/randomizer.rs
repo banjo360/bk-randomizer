@@ -143,6 +143,51 @@ impl Randomizer {
         Ok(())
     }
 
+    pub fn fix_ttc_blue_egg(&mut self) {
+        let ttc_id: u16 = MapSetupId::TreasureTroveCove.into();
+        if let Some(asset_data) = self.assets.get_mut(ttc_id as usize) {
+            if let Asset::MapSetup(MapSetup {
+                cubes,
+                cameras,
+                lightings,
+            }) = &mut asset_data.asset
+            {
+                for cube in cubes.iter_mut() {
+                    for mut entity in cube.props_2.iter_mut() {
+                        if let Prop2::Sprite {
+                            id,
+                            flags,
+                            position,
+                            bitfield_0a,
+                        } = &mut entity
+                        {
+                            if *position
+                                == (Vector3 {
+                                    x: -3966,
+                                    y: 1190,
+                                    z: 1747,
+                                })
+                            {
+                                println!("fix blue egg 1");
+                                position.z = 1706;
+                            } else if *position
+                                == (Vector3 {
+                                    x: -3976,
+                                    y: 1054,
+                                    z: 1750,
+                                })
+                            {
+                                println!("fix blue egg 2");
+                                position.y = 1190;
+                                position.z = 1794;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn patch_code(&self, moves: bool, doors: Vec<u32>) -> Result<(), Box<dyn Error>> {
         let mut xex = OpenOptions::new()
             .read(true)

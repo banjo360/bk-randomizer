@@ -60,6 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("shuffle worlds");
         rando.shuffle_world_order()?;
     }
+
+    rando.fix_ttc_blue_egg();
     rando.remove_specific_actors()?;
     rando.change_randomizer_dialogues();
 
