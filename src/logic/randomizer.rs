@@ -21,7 +21,10 @@ use crate::data::levels::LevelOrder;
 use crate::data::powerpc::Functions;
 use crate::data::powerpc::blr;
 use crate::data::powerpc::call;
+use crate::data::powerpc::epilogue;
+use crate::data::powerpc::prologue;
 use crate::data::powerpc::set_flag;
+use crate::data::powerpc::set_flags;
 use crate::data::xex::CODE_START_CUSTOM_ADDRESS;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
@@ -199,14 +202,18 @@ impl Randomizer {
 
         let custom_address_start: u32 = Functions::CustomFunction.into();
 
-        // mflr r12
-        xex.write_u32::<BigEndian>(0x7d8802a6)?;
-        // stw r12, -8(r1)
-        xex.write_u32::<BigEndian>(0x9181fff8)?;
-        // stwu r1, -60h(r1)
-        xex.write_u32::<BigEndian>(0x9421ffa0)?;
+        prologue(&mut xex)?;
 
         println!("remove flags");
+
+        // remove "first time" flags
+        // collectible, meet mumbo, touched icy water, etc.
+        set_flags(&mut xex, 3, 16, custom_address_start)?;
+        set_flag(&mut xex, 0x14, custom_address_start)?;
+        set_flags(&mut xex, 0x16, 2, custom_address_start)?;
+        set_flag(&mut xex, 0x86, custom_address_start)?;
+        set_flags(&mut xex, 0xA7, 6, custom_address_start)?;
+        set_flag(&mut xex, 0xDD, custom_address_start)?;
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
         let offset = (current_custom_offset - custom_offset_start) as u32;
@@ -239,15 +246,7 @@ impl Randomizer {
             set_flag(&mut xex, flag, custom_address_start)?;
         }
 
-        // addi r1, r1, 60h
-        xex.write_u32::<BigEndian>(0x38210060)?;
-        // lwz r12, -8(r1)
-        xex.write_u32::<BigEndian>(0x8181fff8)?;
-        // mtlr r12
-        xex.write_u32::<BigEndian>(0x7d8803a6)?;
-
-        // blr
-        xex.write_u32::<BigEndian>(blr())?;
+        epilogue(&mut xex)?;
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
         let custom_size = (current_custom_offset - custom_offset_start) as u32;
