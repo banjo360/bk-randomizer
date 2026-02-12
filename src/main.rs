@@ -6,6 +6,7 @@ use enums::{Language, SpritePropId};
 use logic::randomizer::Randomizer;
 use serde::Deserialize;
 use std::error::Error;
+use std::fs::OpenOptions;
 use strings::Strings;
 
 mod assets;
@@ -61,11 +62,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if config.moves {
-        rando.unlock_moves();
+        println!("unlocking moves");
+        rando.unlock_moves()?;
     }
 
     if config.notedoors {
-        rando.remove_note_doors();
+        println!("opening note doors");
+        rando.remove_note_doors()?;
     }
 
     println!("write everything");

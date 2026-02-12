@@ -18,6 +18,9 @@ use crate::data::db360::ASSETS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
+use crate::data::powerpc::blr;
+use crate::data::powerpc::call;
+use crate::data::xex::CODE_START_CUSTOM_ADDRESS;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
 use crate::data::xex::NOTE_DOORS_COSTS;
@@ -25,6 +28,7 @@ use crate::enums::*;
 use crate::utils::Vector3;
 use crate::utils::align_writer;
 use byteorder::BigEndian;
+use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
 use rand::Rng;
@@ -138,8 +142,58 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn unlock_moves(&self) {
-        //
+    pub fn unlock_moves(&self) -> Result<(), Box<dyn Error>> {
+        let mut xex = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("default.xex")
+            .expect("Can't open default.xex, missing?");
+
+        xex.seek(SeekFrom::Start(CODE_START_CUSTOM_ADDRESS));
+
+        let custom_address_start = 0x82440cf4;
+        let mut offset = 0;
+
+        // mflr r12
+        xex.write_u32::<BigEndian>(0x7d8802a6)?;
+        // stw r12, -8(r1)
+        xex.write_u32::<BigEndian>(0x9181fff8)?;
+        // stwu r1, -60h(r1)
+        xex.write_u32::<BigEndian>(0x9421ffa0)?;
+
+        offset += 12;
+
+        // bl __chSmBottles_skipIntroTutorial
+        xex.write_u32::<BigEndian>(call(custom_address_start + offset, 0x8218aab8))?;
+
+        // li r3, -1
+        xex.write_u32::<BigEndian>(0x3860ffff)?;
+        offset += 8;
+
+        // bl ability_setAllLearned
+        xex.write_u32::<BigEndian>(call(custom_address_start + offset, 0x8209ad78))?;
+
+        // addi r1, r1, 60h
+        xex.write_u32::<BigEndian>(0x38210060)?;
+        // lwz r12, -8(r1)
+        xex.write_u32::<BigEndian>(0x8181fff8)?;
+        // mtlr r12
+        xex.write_u32::<BigEndian>(0x7d8803a6)?;
+
+        // blr
+        xex.write_u32::<BigEndian>(blr())?;
+
+        offset += 20;
+
+        // patch chSmBottles_update
+        xex.seek(SeekFrom::Start(0x18da14));
+        xex.write_u32::<BigEndian>(call(0x8218ba14, custom_address_start))?;
+
+        // increase size of .text section
+        xex.seek(SeekFrom::Start(0x2248));
+        xex.write_u32::<LittleEndian>(0x3b0cf4 + offset)?;
+
+        Ok(())
     }
 
     pub fn remove_note_doors(&self) -> Result<(), Box<dyn Error>> {

@@ -21,6 +21,10 @@ This is still an early work-in-progress (i.e. "unusable as-is"). "main.rs" chang
 
 `worlds` (bool): Shuffle the world order or not.
 
+`moves` (bool): Unlock ALL moves from the start.
+
+`notedoors` (bool): Set the cost of all notedoors before 810 to 0.
+
 ### Available actors
 
 This is a list of *safe* actors to shuffle:
