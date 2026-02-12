@@ -18,12 +18,13 @@ use crate::data::db360::ASSETS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
+use crate::data::powerpc::Functions;
 use crate::data::powerpc::blr;
 use crate::data::powerpc::call;
+use crate::data::powerpc::set_flag;
 use crate::data::xex::CODE_START_CUSTOM_ADDRESS;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
-use crate::data::xex::NOTE_DOORS_COSTS;
 use crate::enums::*;
 use crate::utils::Vector3;
 use crate::utils::align_writer;
@@ -142,17 +143,16 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn unlock_moves(&self) -> Result<(), Box<dyn Error>> {
+    pub fn patch_code(&self, moves: bool, doors: Vec<u32>) -> Result<(), Box<dyn Error>> {
         let mut xex = OpenOptions::new()
             .read(true)
             .write(true)
             .open("default.xex")
             .expect("Can't open default.xex, missing?");
 
-        xex.seek(SeekFrom::Start(CODE_START_CUSTOM_ADDRESS));
+        let custom_offset_start = xex.seek(SeekFrom::Start(CODE_START_CUSTOM_ADDRESS))?;
 
-        let custom_address_start = 0x82440cf4;
-        let mut offset = 0;
+        let custom_address_start: u32 = Functions::CustomFunction.into();
 
         // mflr r12
         xex.write_u32::<BigEndian>(0x7d8802a6)?;
@@ -161,17 +161,38 @@ impl Randomizer {
         // stwu r1, -60h(r1)
         xex.write_u32::<BigEndian>(0x9421ffa0)?;
 
-        offset += 12;
+        println!("remove flags");
+
+        let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
+        let offset = (current_custom_offset - custom_offset_start) as u32;
 
         // bl __chSmBottles_skipIntroTutorial
-        xex.write_u32::<BigEndian>(call(custom_address_start + offset, 0x8218aab8))?;
+        xex.write_u32::<BigEndian>(call(
+            custom_address_start + offset,
+            Functions::ChSmBottlesSkipIntroTutorial,
+        ))?;
 
-        // li r3, -1
-        xex.write_u32::<BigEndian>(0x3860ffff)?;
-        offset += 8;
+        if moves {
+            println!("unlock moves");
 
-        // bl ability_setAllLearned
-        xex.write_u32::<BigEndian>(call(custom_address_start + offset, 0x8209ad78))?;
+            // li r3, -1
+            xex.write_u32::<BigEndian>(0x3860ffff)?;
+
+            let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
+            let offset = (current_custom_offset - custom_offset_start) as u32;
+
+            xex.write_u32::<BigEndian>(call(
+                custom_address_start + offset,
+                Functions::AbilitySetAllLearned,
+            ))?;
+        }
+
+        println!("open requested note doors");
+
+        for cost in doors {
+            let flag = get_door_flag(cost);
+            set_flag(&mut xex, flag, custom_address_start)?;
+        }
 
         // addi r1, r1, 60h
         xex.write_u32::<BigEndian>(0x38210060)?;
@@ -183,31 +204,16 @@ impl Randomizer {
         // blr
         xex.write_u32::<BigEndian>(blr())?;
 
-        offset += 20;
+        let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
+        let custom_size = (current_custom_offset - custom_offset_start) as u32;
 
         // patch chSmBottles_update
         xex.seek(SeekFrom::Start(0x18da14));
-        xex.write_u32::<BigEndian>(call(0x8218ba14, custom_address_start))?;
+        xex.write_u32::<BigEndian>(call(0x8218ba14, Functions::CustomFunction))?;
 
         // increase size of .text section
         xex.seek(SeekFrom::Start(0x2248));
-        xex.write_u32::<LittleEndian>(0x3b0cf4 + offset)?;
-
-        Ok(())
-    }
-
-    pub fn remove_note_doors(&self) -> Result<(), Box<dyn Error>> {
-        // crude way, all doors pre-810 cost 0
-        let mut xex = OpenOptions::new()
-            .write(true)
-            .open("default.xex")
-            .expect("Can't open default.xex, missing?");
-
-        xex.seek(SeekFrom::Start(NOTE_DOORS_COSTS))?;
-
-        for _ in 0..7 {
-            xex.write_u16::<BigEndian>(0)?;
-        }
+        xex.write_u32::<LittleEndian>(0x3b0cf4 + custom_size)?;
 
         Ok(())
     }
@@ -980,4 +986,22 @@ fn distance(a: &Vector3<i16>, b: &Vector3<i16>) -> u32 {
     let z = (a.z - b.z).abs() as u32;
 
     x * x + y * y + z * z
+}
+
+fn get_door_flag(cost: u32) -> u32 {
+    match cost {
+        50 => 0x3A,
+        180 => 0x3B,
+        260 => 0x3C,
+        350 => 0x3D,
+        450 => 0x3E,
+        640 => 0x3F,
+        765 => 0x40,
+        810 => 0x41,
+        828 => 0x42,
+        846 => 0x43,
+        864 => 0x44,
+        882 => 0x45,
+        _ => unreachable!(),
+    }
 }

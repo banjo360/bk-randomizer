@@ -23,7 +23,7 @@ This is still an early work-in-progress (i.e. "unusable as-is"). "main.rs" chang
 
 `moves` (bool): Unlock ALL moves from the start.
 
-`notedoors` (bool): Set the cost of all notedoors before 810 to 0.
+`notedoors` (array of int): List of note doors that will be opened when starting a new game.
 
 ### Available actors
 

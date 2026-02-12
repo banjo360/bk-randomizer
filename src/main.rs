@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use crate::data::NOTE_DOORS_COSTS;
 use crate::enums::ActorId;
 use assets::map_setup::Category;
 use enums::{Language, SpritePropId};
@@ -34,7 +35,7 @@ struct Config {
     moves: bool,
 
     #[serde(default)]
-    notedoors: bool,
+    notedoors: Vec<u32>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -43,6 +44,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("config.json is malformed!");
         return Ok(());
     };
+
+    if !config
+        .notedoors
+        .iter()
+        .all(|c| NOTE_DOORS_COSTS.contains(c))
+    {
+        eprintln!("Invalid note door!");
+        return Ok(());
+    }
 
     let mut rando = Randomizer::new()?;
 
@@ -61,15 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         rando.shuffle_entities(vec![], config.sprites);
     }
 
-    if config.moves {
-        println!("unlocking moves");
-        rando.unlock_moves()?;
-    }
-
-    if config.notedoors {
-        println!("opening note doors");
-        rando.remove_note_doors()?;
-    }
+    rando.patch_code(config.moves, config.notedoors);
 
     println!("write everything");
     rando.save()?;

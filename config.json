@@ -26,6 +26,8 @@
     ],
     "mix": true,
     "moves": false,
-    "notedoors": false,
+    "notedoors": [
+        50
+    ],
     "worlds": true
 }
