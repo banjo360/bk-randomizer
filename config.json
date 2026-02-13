@@ -25,9 +25,11 @@
         "RedFeather"
     ],
     "mix": true,
-    "moves": false,
+    "moves": true,
     "notedoors": [
-        50
+        50, 260
     ],
-    "worlds": true
+    "worlds": true,
+    "pipes": false,
+    "cauldrons": false
 }

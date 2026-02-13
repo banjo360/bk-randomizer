@@ -1,5 +1,6 @@
 use super::enums::Props;
 use super::location::Location;
+use crate::Config;
 use crate::assets::Asset;
 use crate::assets::animation::Animation;
 use crate::assets::dialogue::Dialogue;
@@ -19,7 +20,6 @@ use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
 use crate::data::powerpc::Functions;
-use crate::data::powerpc::blr;
 use crate::data::powerpc::call;
 use crate::data::powerpc::epilogue;
 use crate::data::powerpc::jump;
@@ -107,7 +107,7 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn shuffle_world_order(&mut self, all_moves_unlocked: bool) -> Result<(), Box<dyn Error>> {
+    pub fn shuffle_world_order(&mut self, config: &Config) -> Result<(), Box<dyn Error>> {
         let mut level_order = vec![
             LevelOrder::MumbosMountain,
             LevelOrder::TreasureTroveCove,
@@ -120,13 +120,12 @@ impl Randomizer {
             LevelOrder::MadMonsterMansion,
         ];
 
-        if all_moves_unlocked {
+        if config.moves {
             // if all moves are unlocked, the order doesn't matter
             level_order.shuffle(&mut rng());
         } else {
             // the first world need talon trot (but can't be GV)
             level_order[..5].shuffle(&mut rng());
-            assert!(level_order[0].has_molehill());
 
             loop {
                 level_order[1..].shuffle(&mut rng());
@@ -137,7 +136,7 @@ impl Randomizer {
                 let l3 = level_order[3].molehill_count(); // BGS
 
                 // need beak buster before CC and shock jump before FP
-                if l0 + l1 >= 2 && l0 + l1 + l2 + l3 >= 3 {
+                if (l0 + l1 >= 2 || config.pipes) && l0 + l1 + l2 + l3 >= 3 {
                     break;
                 }
             }
@@ -158,38 +157,38 @@ impl Randomizer {
         if let Some(asset_data) = self.assets.get_mut(ttc_id as usize) {
             if let Asset::MapSetup(MapSetup {
                 cubes,
-                cameras,
-                lightings,
+                cameras: _,
+                lightings: _,
             }) = &mut asset_data.asset
             {
                 for cube in cubes.iter_mut() {
                     for mut entity in cube.props_2.iter_mut() {
                         if let Prop2::Sprite {
-                            id,
-                            flags,
+                            id: _,
+                            flags: _,
                             position,
-                            bitfield_0a,
+                            bitfield_0a: _,
                         } = &mut entity
                         {
                             if *position
-                                == (Vector3 {
-                                    x: -3966,
-                                    y: 1190,
-                                    z: 1747,
-                                })
-                            {
-                                println!("fix blue egg 1");
-                                position.z = 1706;
-                            } else if *position
                                 == (Vector3 {
                                     x: -3976,
                                     y: 1054,
                                     z: 1750,
                                 })
                             {
-                                println!("fix blue egg 2");
+                                println!("fix blue egg 1");
                                 position.y = 1190;
                                 position.z = 1794;
+                            } else if *position
+                                == (Vector3 {
+                                    x: -3966,
+                                    y: 1190,
+                                    z: 1747,
+                                })
+                            {
+                                println!("fix blue egg 2");
+                                position.z = 1706;
                             }
                         }
                     }
@@ -198,7 +197,7 @@ impl Randomizer {
         }
     }
 
-    pub fn patch_code(&self, moves: bool, doors: Vec<u32>) -> Result<(), Box<dyn Error>> {
+    pub fn patch_code(&self, config: &Config) -> Result<(), Box<dyn Error>> {
         let mut xex = OpenOptions::new()
             .read(true)
             .write(true)
@@ -214,13 +213,21 @@ impl Randomizer {
         println!("remove flags");
 
         // remove "first time" flags
-        // collectible, meet mumbo, touched icy water, etc.
+        // collectibles, meet mumbo, touched icy water, etc.
         set_flags(&mut xex, 3, 16, custom_address_start)?;
         set_flag(&mut xex, 0x14, custom_address_start)?;
         set_flags(&mut xex, 0x16, 2, custom_address_start)?;
         set_flag(&mut xex, 0x86, custom_address_start)?;
         set_flags(&mut xex, 0xA7, 6, custom_address_start)?;
         set_flag(&mut xex, 0xDD, custom_address_start)?;
+
+        if config.pipes {
+            set_flags(&mut xex, 0x1F, 3, custom_address_start)?;
+        }
+
+        if config.cauldrons {
+            set_flags(&mut xex, 0x49, 10, custom_address_start)?;
+        }
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
         let offset = (current_custom_offset - custom_offset_start) as u32;
@@ -231,7 +238,7 @@ impl Randomizer {
             Functions::ChSmBottlesSkipIntroTutorial,
         ))?;
 
-        if moves {
+        if config.moves {
             println!("unlock moves");
 
             // li r3, -1
@@ -248,8 +255,8 @@ impl Randomizer {
 
         println!("open requested note doors");
 
-        for cost in doors {
-            let flag = get_door_flag(cost);
+        for cost in &config.notedoors {
+            let flag = get_door_flag(*cost);
             set_flag(&mut xex, flag, custom_address_start)?;
         }
 
@@ -259,21 +266,21 @@ impl Randomizer {
         let custom_size = (current_custom_offset - custom_offset_start) as u32;
 
         // increase size of .text section
-        xex.seek(SeekFrom::Start(0x2248));
+        xex.seek(SeekFrom::Start(0x2248))?;
         xex.write_u32::<LittleEndian>(0x3b0cf4 + custom_size)?;
 
         // patch chSmBottles_update
-        xex.seek(SeekFrom::Start(0x18da14));
+        xex.seek(SeekFrom::Start(0x18da14))?;
         xex.write_u32::<BigEndian>(call(0x8218ba14, Functions::CustomFunction))?;
 
         // patch stoodOnPodiumCallback to skip bottles' instructions
-        xex.seek(SeekFrom::Start(0x1826fc));
+        xex.seek(SeekFrom::Start(0x1826fc))?;
         xex.write_u32::<BigEndian>(0x38800004)?;
 
         // patch __baMarker_8028B848 to remove
         // - DIALOG_FIRST_JIGGY
         // - DIALOG_JIGGY_COLLECT_10
-        xex.seek(SeekFrom::Start(0x94068));
+        xex.seek(SeekFrom::Start(0x94068))?;
         xex.write_u32::<BigEndian>(jump(0x82092068, 0x820920e8))?;
 
         Ok(())
@@ -432,7 +439,7 @@ impl Randomizer {
         let dial_id: u16 = id.into();
         if let Some(asset_data) = self.assets.get_mut(dial_id as usize) {
             if let Asset::Dialogue(dialogue) = &mut asset_data.asset {
-                let mut data = dialogue.translations.get_mut(&lang).unwrap();
+                let data = dialogue.translations.get_mut(&lang).unwrap();
                 data.top = top;
                 data.bottom = bottom;
             }
@@ -571,9 +578,9 @@ impl Randomizer {
         Ok(())
     }
 
-    pub fn shuffle_entities(&mut self, actors: Vec<ActorId>, sprites: Vec<SpritePropId>) {
+    pub fn shuffle_entities(&mut self, actors: &Vec<ActorId>, sprites: &Vec<SpritePropId>) {
         for level in &LEVELS_INFO {
-            self.shuffle_entities_for_level(&actors, &sprites, level);
+            self.shuffle_entities_for_level(actors, sprites, level);
         }
     }
 
@@ -646,7 +653,7 @@ impl Randomizer {
                         let Prop2::Sprite {
                             id,
                             flags,
-                            position,
+                            position: _,
                             bitfield_0a,
                         } = prop2
                         else {
@@ -681,15 +688,15 @@ impl Randomizer {
         let mut locations = vec![];
 
         let mut saved_flags = vec![];
-        for (cube_id, cube) in map.cubes.iter_mut().enumerate() {
+        for cube in map.cubes.iter_mut() {
             for prop in &cube.props_1 {
-                if let Category::Flags(flag_id) = prop.category {
+                if let Category::Flags(_) = prop.category {
                     saved_flags.push(*prop);
                 }
             }
 
             cube.props_1.retain(|p| {
-                if let Category::Flags(flag_id) = p.category {
+                if let Category::Flags(_) = p.category {
                     false
                 } else {
                     true
@@ -732,9 +739,9 @@ impl Randomizer {
             for prop in &cube.props_2 {
                 if let Prop2::Sprite {
                     id,
-                    flags,
+                    flags: _,
                     position,
-                    bitfield_0a,
+                    bitfield_0a: _,
                 } = *prop
                 {
                     if sprites.contains(&id) {
@@ -758,18 +765,20 @@ impl Randomizer {
 
         if !saved_flags.is_empty() {
             for flag in saved_flags {
-                let mut inserted = true;
+                let mut inserted = false;
                 for cube in &mut map.cubes {
-                    if flag.position.x as i32 / 1000 == cube.x / 1000
-                        && flag.position.y as i32 / 1000 == cube.y / 1000
-                        && flag.position.z as i32 / 1000 == cube.z / 1000
+                    if flag.position.x as i32 / 1000 == cube.x
+                        && flag.position.y as i32 / 1000 == cube.y
+                        && flag.position.z as i32 / 1000 == cube.z
                     {
                         cube.props_1.push(flag);
+                        inserted = true;
+                        break;
                     }
                 }
 
                 if !inserted {
-                    todo!();
+                    unreachable!();
                 }
             }
         }

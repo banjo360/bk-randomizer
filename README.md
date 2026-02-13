@@ -25,6 +25,10 @@ This is still an early work-in-progress (i.e. "unusable as-is"). "main.rs" chang
 
 `notedoors` (array of int): List of note doors that will be opened when starting a new game.
 
+`pipes` (bool): Raise the pipes in Clanker's Cavern's lobby.
+
+`cauldrons` (bool): All cauldrons start already active.
+
 ### Available actors
 
 This is a list of *safe* actors to shuffle:

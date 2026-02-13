@@ -40,7 +40,7 @@ pub fn epilogue<W: Write + Seek>(writer: &mut W) -> Result<(), Box<dyn Error>> {
     writer.write_u32::<BigEndian>(0x7d8803a6)?;
 
     // blr
-    writer.write_u32::<BigEndian>(blr())?;
+    writer.write_u32::<BigEndian>(0x4e800020)?;
 
     Ok(())
 }
@@ -76,7 +76,7 @@ pub fn set_flag<W: Write + Seek>(
     writer.write_u32::<BigEndian>(call(
         custom_address_start + offset,
         Functions::FileProgressFlagSet,
-    ));
+    ))?;
 
     Ok(())
 }
@@ -103,11 +103,7 @@ pub fn set_flags<W: Write + Seek>(
     writer.write_u32::<BigEndian>(call(
         custom_address_start + offset,
         Functions::FileProgressFlagSetN,
-    ));
+    ))?;
 
     Ok(())
-}
-
-pub fn blr() -> u32 {
-    0x4e800020
 }

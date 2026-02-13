@@ -2,13 +2,10 @@
 
 use crate::data::NOTE_DOORS_COSTS;
 use crate::enums::ActorId;
-use assets::map_setup::Category;
-use enums::{Language, SpritePropId};
+use enums::SpritePropId;
 use logic::randomizer::Randomizer;
 use serde::Deserialize;
 use std::error::Error;
-use std::fs::OpenOptions;
-use strings::Strings;
 
 mod assets;
 mod data;
@@ -36,6 +33,12 @@ struct Config {
 
     #[serde(default)]
     notedoors: Vec<u32>,
+
+    #[serde(default)]
+    pipes: bool,
+
+    #[serde(default)]
+    cauldrons: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -58,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if config.worlds {
         println!("shuffle worlds");
-        rando.shuffle_world_order(config.moves)?;
+        rando.shuffle_world_order(&config)?;
     }
 
     rando.fix_ttc_blue_egg();
@@ -67,13 +70,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("shuffle entities");
     if config.mix {
-        rando.shuffle_entities(config.actors, config.sprites);
+        rando.shuffle_entities(&config.actors, &config.sprites);
     } else {
-        rando.shuffle_entities(config.actors, vec![]);
-        rando.shuffle_entities(vec![], config.sprites);
+        rando.shuffle_entities(&config.actors, &vec![]);
+        rando.shuffle_entities(&vec![], &config.sprites);
     }
 
-    rando.patch_code(config.moves, config.notedoors);
+    rando.patch_code(&config)?;
 
     println!("write everything");
     rando.save()?;

@@ -53,7 +53,7 @@ impl Strings {
 
             for str_id in 0..number_of_strings {
                 let len = sizes_per_language[lang][str_id];
-                let pos = reader.seek(std::io::SeekFrom::Current(0))?;
+
                 let mut buffer = vec![0u8; len - 1];
                 reader.read(&mut buffer)?;
                 assert_eq!(reader.read_u8()?, 0);
@@ -75,7 +75,7 @@ impl Strings {
                     translations.insert(Language::English, s);
                     strings.push(TranslatableString { translations });
                 } else {
-                    let mut data = strings.get_mut(str_id).unwrap();
+                    let data = strings.get_mut(str_id).unwrap();
                     data.translations.insert(LANGUAGE_MAPPING[lang], s);
                 }
             }
@@ -83,6 +83,7 @@ impl Strings {
 
         Ok(Self { strings })
     }
+
     pub fn write<W: Write + Seek>(&self, writer: &mut W) -> Result<(), Box<dyn Error>> {
         let number_of_strings = self.strings.len();
         let number_of_languages = self.strings[0].translations.len();
@@ -91,13 +92,13 @@ impl Strings {
 
         let sizes_pos = writer.seek(std::io::SeekFrom::Current(0))?;
         for _ in 0..number_of_languages {
-            writer.write_u32::<LittleEndian>(0);
+            writer.write_u32::<LittleEndian>(0)?;
         }
 
         for lang_id in 0..number_of_languages {
             let lang = LANGUAGE_MAPPING[lang_id];
             for string in &self.strings {
-                writer.write_u32::<LittleEndian>(string.translations[&lang].len() as u32 + 1);
+                writer.write_u32::<LittleEndian>(string.translations[&lang].len() as u32 + 1)?;
             }
         }
 
@@ -131,7 +132,7 @@ impl Strings {
 
         writer.seek(std::io::SeekFrom::Start(sizes_pos))?;
         for i in 0..number_of_languages {
-            writer.write_u32::<LittleEndian>(sizes_by_languages[i] as u32);
+            writer.write_u32::<LittleEndian>(sizes_by_languages[i] as u32)?;
         }
 
         Ok(())
