@@ -22,6 +22,7 @@ use crate::data::powerpc::Functions;
 use crate::data::powerpc::blr;
 use crate::data::powerpc::call;
 use crate::data::powerpc::epilogue;
+use crate::data::powerpc::jump;
 use crate::data::powerpc::prologue;
 use crate::data::powerpc::set_flag;
 use crate::data::powerpc::set_flags;
@@ -257,13 +258,23 @@ impl Randomizer {
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
         let custom_size = (current_custom_offset - custom_offset_start) as u32;
 
+        // increase size of .text section
+        xex.seek(SeekFrom::Start(0x2248));
+        xex.write_u32::<LittleEndian>(0x3b0cf4 + custom_size)?;
+
         // patch chSmBottles_update
         xex.seek(SeekFrom::Start(0x18da14));
         xex.write_u32::<BigEndian>(call(0x8218ba14, Functions::CustomFunction))?;
 
-        // increase size of .text section
-        xex.seek(SeekFrom::Start(0x2248));
-        xex.write_u32::<LittleEndian>(0x3b0cf4 + custom_size)?;
+        // patch stoodOnPodiumCallback to skip bottles' instructions
+        xex.seek(SeekFrom::Start(0x1826fc));
+        xex.write_u32::<BigEndian>(0x38800004)?;
+
+        // patch __baMarker_8028B848 to remove
+        // - DIALOG_FIRST_JIGGY
+        // - DIALOG_JIGGY_COLLECT_10
+        xex.seek(SeekFrom::Start(0x94068));
+        xex.write_u32::<BigEndian>(jump(0x82092068, 0x820920e8))?;
 
         Ok(())
     }

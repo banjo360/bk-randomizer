@@ -47,8 +47,13 @@ pub fn epilogue<W: Write + Seek>(writer: &mut W) -> Result<(), Box<dyn Error>> {
 
 pub fn call(address: u32, target: Functions) -> u32 {
     let target: u32 = target.into();
+
+    jump(address, target) + 1
+}
+
+pub fn jump(address: u32, target: u32) -> u32 {
     let diff = target as i64 - address as i64;
-    let inst = ((diff as u32) & 0x03FFFFFC) + 0x48000001;
+    let inst = ((diff as u32) & 0x03FFFFFC) + 0x48000000;
 
     inst
 }
