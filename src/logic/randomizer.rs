@@ -197,6 +197,35 @@ impl Randomizer {
         }
     }
 
+    pub fn remove_bridge_molehill(&mut self) {
+        let sm_id: u16 = MapSetupId::SpiralMountain.into();
+        if let Some(asset_data) = self.assets.get_mut(sm_id as usize) {
+            if let Asset::MapSetup(MapSetup {
+                cubes,
+                cameras: _,
+                lightings: _,
+            }) = &mut asset_data.asset
+            {
+                for cube in cubes.iter_mut() {
+                    cube.props_1.retain(|p| {
+                        if let Category::Actor(id) = p.category {
+                            match id {
+                                ActorId::SpiralMountainBottlesMolehill => p.selector_or_radius != 8,
+                                ActorId::SpiralMountainBridgeForcedMovementStart => false,
+                                ActorId::SpiralMountainBridgeForcedMovementTarget => false,
+                                _ => true,
+                            }
+                        } else if let Category::CameraController(id) = p.category {
+                            id != 20
+                        } else {
+                            true
+                        }
+                    });
+                }
+            }
+        }
+    }
+
     pub fn patch_code(&self, config: &Config) -> Result<(), Box<dyn Error>> {
         let mut xex = OpenOptions::new()
             .read(true)
@@ -227,6 +256,11 @@ impl Randomizer {
 
         if config.cauldrons {
             set_flags(&mut xex, 0x49, 10, custom_address_start)?;
+        }
+
+        if config.furnace_fun {
+            set_flags(&mut xex, 0xF3, 2, custom_address_start)?;
+            set_flag(&mut xex, 0xA6, custom_address_start)?;
         }
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;

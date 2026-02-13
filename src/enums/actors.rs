@@ -105,6 +105,7 @@ enum_builder! {
         SharkfoodIsland = 604,
         BetaVent = 649,
         BigClucker = 671,
+        Caterpillar = 674,
         NabnutsAcorn = 681,
         Lighthouse = 738,
         WorldSign = 739,
@@ -127,6 +128,8 @@ enum_builder! {
         PortraitChompa = 897,
         Igloo = 942,
         Chimney = 944,
+        SpiralMountainBridgeForcedMovementStart = 957,
+        SpiralMountainBridgeForcedMovementTarget = 958,
         BlueGruntling = 959,
         BlackGruntling = 960,
     }

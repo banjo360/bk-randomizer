@@ -39,6 +39,9 @@ struct Config {
 
     #[serde(default)]
     cauldrons: bool,
+
+    #[serde(default)]
+    furnace_fun: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -74,6 +77,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         rando.shuffle_entities(&config.actors, &vec![]);
         rando.shuffle_entities(&vec![], &config.sprites);
+    }
+
+    if config.furnace_fun {
+        rando.remove_bridge_molehill();
     }
 
     rando.patch_code(&config)?;

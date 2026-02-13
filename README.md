@@ -23,7 +23,7 @@ This is still an early work-in-progress (i.e. "unusable as-is"). "main.rs" chang
 
 `moves` (bool): Unlock ALL moves from the start.
 
-`notedoors` (array of int): List of note doors that will be opened when starting a new game.
+`notedoors` (array of int): List of note doors that will be opened when starting a new game. (possible values: 50, 180, 260, 350, 450, 640, 765, 810, 828, 846, 864, 882)
 
 `pipes` (bool): Raise the pipes in Clanker's Cavern's lobby.
 
