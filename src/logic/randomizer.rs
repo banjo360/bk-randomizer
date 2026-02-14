@@ -152,45 +152,48 @@ impl Randomizer {
         Ok(())
     }
 
+    fn get_map_setup(&mut self, map_setup_id: MapSetupId) -> &mut MapSetup {
+        let setup_id: u16 = map_setup_id.into();
+        if let Some(asset_data) = self.assets.get_mut(setup_id as usize) {
+            if let Asset::MapSetup(map_setup) = &mut asset_data.asset {
+                return map_setup;
+            }
+        }
+
+        unreachable!();
+    }
+
     pub fn fix_ttc_blue_egg(&mut self) {
-        let ttc_id: u16 = MapSetupId::TreasureTroveCove.into();
-        if let Some(asset_data) = self.assets.get_mut(ttc_id as usize) {
-            if let Asset::MapSetup(MapSetup {
-                cubes,
-                cameras: _,
-                lightings: _,
-            }) = &mut asset_data.asset
-            {
-                for cube in cubes.iter_mut() {
-                    for mut entity in cube.props_2.iter_mut() {
-                        if let Prop2::Sprite {
-                            id: _,
-                            flags: _,
-                            position,
-                            bitfield_0a: _,
-                        } = &mut entity
-                        {
-                            if *position
-                                == (Vector3 {
-                                    x: -3976,
-                                    y: 1054,
-                                    z: 1750,
-                                })
-                            {
-                                println!("fix blue egg 1");
-                                position.y = 1190;
-                                position.z = 1794;
-                            } else if *position
-                                == (Vector3 {
-                                    x: -3966,
-                                    y: 1190,
-                                    z: 1747,
-                                })
-                            {
-                                println!("fix blue egg 2");
-                                position.z = 1706;
-                            }
-                        }
+        let map_setup = self.get_map_setup(MapSetupId::TreasureTroveCove);
+
+        for cube in map_setup.cubes.iter_mut() {
+            for mut entity in cube.props_2.iter_mut() {
+                if let Prop2::Sprite {
+                    id: _,
+                    flags: _,
+                    position,
+                    bitfield_0a: _,
+                } = &mut entity
+                {
+                    if *position
+                        == (Vector3 {
+                            x: -3976,
+                            y: 1054,
+                            z: 1750,
+                        })
+                    {
+                        println!("fix blue egg 1");
+                        position.y = 1190;
+                        position.z = 1794;
+                    } else if *position
+                        == (Vector3 {
+                            x: -3966,
+                            y: 1190,
+                            z: 1747,
+                        })
+                    {
+                        println!("fix blue egg 2");
+                        position.z = 1706;
                     }
                 }
             }
@@ -198,31 +201,23 @@ impl Randomizer {
     }
 
     pub fn remove_bridge_molehill(&mut self) {
-        let sm_id: u16 = MapSetupId::SpiralMountain.into();
-        if let Some(asset_data) = self.assets.get_mut(sm_id as usize) {
-            if let Asset::MapSetup(MapSetup {
-                cubes,
-                cameras: _,
-                lightings: _,
-            }) = &mut asset_data.asset
-            {
-                for cube in cubes.iter_mut() {
-                    cube.props_1.retain(|p| {
-                        if let Category::Actor(id) = p.category {
-                            match id {
-                                ActorId::SpiralMountainBottlesMolehill => p.selector_or_radius != 8,
-                                ActorId::SpiralMountainBridgeForcedMovementStart => false,
-                                ActorId::SpiralMountainBridgeForcedMovementTarget => false,
-                                _ => true,
-                            }
-                        } else if let Category::CameraController(id) = p.category {
-                            id != 20
-                        } else {
-                            true
-                        }
-                    });
+        let map_setup = self.get_map_setup(MapSetupId::SpiralMountain);
+
+        for cube in map_setup.cubes.iter_mut() {
+            cube.props_1.retain(|p| {
+                if let Category::Actor(id) = p.category {
+                    match id {
+                        ActorId::SpiralMountainBottlesMolehill => p.selector_or_radius != 8,
+                        ActorId::SpiralMountainBridgeForcedMovementStart => false,
+                        ActorId::SpiralMountainBridgeForcedMovementTarget => false,
+                        _ => true,
+                    }
+                } else if let Category::CameraController(id) = p.category {
+                    id != 20
+                } else {
+                    true
                 }
-            }
+            });
         }
     }
 
@@ -712,12 +707,7 @@ impl Randomizer {
         sprites: &Vec<SpritePropId>,
         map_id: &MapSetupId,
     ) -> Vec<Location> {
-        let id: u16 = (*map_id).into();
-        let map = &mut self.assets[id as usize].asset;
-
-        let Asset::MapSetup(map) = map else {
-            unreachable!();
-        };
+        let map = self.get_map_setup(*map_id);
 
         let mut locations = vec![];
 

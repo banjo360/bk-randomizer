@@ -1,6 +1,6 @@
 # Banjo-Kazooie Randomizer for the Xbox 360
 
-This is still an early work-in-progress (i.e. "unusable as-is"). "main.rs" changes based on my tests and progress.
+This is still an work-in-progress. There is a possibility of a game crash or a softlock. Don't hesitate to report them.
 
 ## Preparation
 
