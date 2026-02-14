@@ -58,6 +58,14 @@ pub fn jump(address: u32, target: u32) -> u32 {
     inst
 }
 
+pub fn nop<W: Write>(writer: &mut W) -> Result<(), Box<dyn Error>> {
+    // ori r0, r0, 0
+    // i.e. "noop"
+    writer.write_u32::<BigEndian>(0x60000000)?;
+
+    Ok(())
+}
+
 pub fn set_flag<W: Write + Seek>(
     writer: &mut W,
     flag: u32,

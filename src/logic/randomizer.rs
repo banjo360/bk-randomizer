@@ -23,6 +23,7 @@ use crate::data::powerpc::Functions;
 use crate::data::powerpc::call;
 use crate::data::powerpc::epilogue;
 use crate::data::powerpc::jump;
+use crate::data::powerpc::nop;
 use crate::data::powerpc::prologue;
 use crate::data::powerpc::set_flag;
 use crate::data::powerpc::set_flags;
@@ -311,6 +312,21 @@ impl Randomizer {
         // - DIALOG_JIGGY_COLLECT_10
         xex.seek(SeekFrom::Start(0x94068))?;
         xex.write_u32::<BigEndian>(jump(0x82092068, 0x820920e8))?;
+
+        println!("globaliser");
+
+        xex.seek(SeekFrom::Start(0x155844))?;
+        for _ in 0..13 {
+            nop(&mut xex)?;
+        }
+
+        for _ in 0..11 {
+            xex.read_u32::<BigEndian>()?; // skip
+            nop(&mut xex)?;
+        }
+
+        xex.seek(SeekFrom::Start(0x15591c))?;
+        nop(&mut xex)?;
 
         Ok(())
     }
