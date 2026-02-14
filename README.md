@@ -19,15 +19,17 @@ This is still an work-in-progress. There is a possibility of a game crash or a s
 
 `mix` (bool): if `true`, `actors` and `sprites` are shuffled together (i.e. an egg can be swapped with a jiggy), otherwise, `actors` are only shuffled between themselves, and same for `sprites`.
 
-`worlds` (bool): Shuffle the world order or not.
+`worlds` (bool): Shuffle the world order if `true`.
 
-`moves` (bool): Unlock ALL moves from the start.
+`moves` (bool): Unlock ALL moves from the start if `true`.
 
-`notedoors` (array of int): List of note doors that will be opened when starting a new game. (possible values: 50, 180, 260, 350, 450, 640, 765, 810, 828, 846, 864, 882)
+`notedoors` (array of int): List of note doors that will be already opened when starting a new game. (possible values: 50, 180, 260, 350, 450, 640, 765, 810, 828, 846, 864, 882)
 
-`pipes` (bool): Raise the pipes in Clanker's Cavern's lobby.
+`pipes` (bool): Raise the pipes in Clanker's Cavern's lobby, and open the grate to BGS' puzzle.
 
 `cauldrons` (bool): All cauldrons start already active.
+
+`enemies` (bool): Randomize enemies in the whole game. (they are not shuffled, each enemy is replaced by another one at random)
 
 ### Available actors
 
@@ -51,7 +53,7 @@ This is a list of *safe* actors to shuffle:
 - `PinkJinjo`
 - `YellowJinjo`
 
-You can shuffle [any actor](src/enums/actors.rs), but some like `Conga` might *break* the game or make some things impossible to get.
+You can shuffle [any actor](src/enums/actors.rs) that are not enemies (e.g. Teehee, Grublin, etc), but some like `Conga` might *break* the game or make some things impossible to get.
 
 ### Available sprites
 

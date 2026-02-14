@@ -1,4 +1,6 @@
 use crate::enum_builder;
+use rand::prelude::IndexedRandom;
+use rand::rng;
 use serde::Deserialize;
 
 enum_builder! {
@@ -100,6 +102,8 @@ enum_builder! {
         JiggyTtcWitchSwitch = 521,
         WitchSwitchRustyBucketBay = 523,
         JiggyRbbWitchSwitch = 524,
+        LairCcLobbyGrate = 531,
+        LairCcLobbyGrateSwitch = 532,
         SnowRoofHouse = 553,
         JiggyCcwWitchSwitch = 568,
         SharkfoodIsland = 604,
@@ -135,6 +139,31 @@ enum_builder! {
     }
 }
 
+const ENEMIES: [ActorId; 22] = [
+    ActorId::Bigbutt,
+    ActorId::Ticker,
+    ActorId::Grublin,
+    ActorId::Snippet,
+    ActorId::YumYum,
+    ActorId::Ripper,
+    ActorId::TeeHee,
+    ActorId::RedFlibbit,
+    ActorId::Flotsam,
+    ActorId::Grimlet,
+    ActorId::Limbo,
+    ActorId::MumMum,
+    ActorId::SeamanGrublin,
+    ActorId::RedGruntling,
+    ActorId::Colliwobble,
+    ActorId::Bawl,
+    ActorId::Topper,
+    ActorId::GrublinHood,
+    ActorId::Chinker,
+    ActorId::Scabby,
+    ActorId::BlueGruntling,
+    ActorId::BlackGruntling,
+];
+
 impl ActorId {
     pub fn needs_flag(&self) -> bool {
         match self {
@@ -143,5 +172,20 @@ impl ActorId {
             Self::EmptyHoneycomb => true,
             _ => false,
         }
+    }
+
+    pub fn can_globalize(&self) -> bool {
+        match self {
+            ActorId::ChimpysOrange => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_enemy(&self) -> bool {
+        ENEMIES.contains(self)
+    }
+
+    pub fn random_enemy() -> Self {
+        *ENEMIES.choose(&mut rng()).unwrap()
     }
 }

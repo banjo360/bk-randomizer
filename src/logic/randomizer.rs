@@ -16,6 +16,7 @@ use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
 use crate::data::db360::ASSETS;
+use crate::data::levels::LAIR_MAPS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelInfo;
 use crate::data::levels::LevelOrder;
@@ -245,9 +246,16 @@ impl Randomizer {
         set_flag(&mut xex, 0x86, custom_address_start)?;
         set_flags(&mut xex, 0xA7, 6, custom_address_start)?;
         set_flag(&mut xex, 0xDD, custom_address_start)?;
+        set_flags(&mut xex, 0xDF, 2, custom_address_start)?;
+
+        // has entered levels
+        set_flags(&mut xex, 0xB0, 9, custom_address_start)?;
+
+        // FF flags (met dingpot, saw FF cutscene, etc)
+        set_flags(&mut xex, 0xF3, 4, custom_address_start)?;
 
         if config.pipes {
-            set_flags(&mut xex, 0x1F, 3, custom_address_start)?;
+            set_flags(&mut xex, 0x1E, 4, custom_address_start)?;
         }
 
         if config.cauldrons {
@@ -255,14 +263,12 @@ impl Randomizer {
         }
 
         if config.furnace_fun {
-            set_flags(&mut xex, 0xF3, 2, custom_address_start)?;
             set_flag(&mut xex, 0xA6, custom_address_start)?;
         }
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
         let offset = (current_custom_offset - custom_offset_start) as u32;
 
-        // bl __chSmBottles_skipIntroTutorial
         xex.write_u32::<BigEndian>(call(
             custom_address_start + offset,
             Functions::ChSmBottlesSkipIntroTutorial,
@@ -626,6 +632,36 @@ impl Randomizer {
     pub fn shuffle_entities(&mut self, actors: &Vec<ActorId>, sprites: &Vec<SpritePropId>) {
         for level in &LEVELS_INFO {
             self.shuffle_entities_for_level(actors, sprites, level);
+        }
+    }
+
+    pub fn randomize_enemies(&mut self) {
+        for level in &LEVELS_INFO {
+            self.randomize_enemies_for_level(level);
+        }
+
+        for map in &LAIR_MAPS {
+            self.randomize_enemies_for_map(map);
+        }
+    }
+
+    fn randomize_enemies_for_level(&mut self, level: &LevelInfo) {
+        for map_id in level.maps {
+            self.randomize_enemies_for_map(map_id);
+        }
+    }
+
+    fn randomize_enemies_for_map(&mut self, map_id: &MapSetupId) {
+        let map = self.get_map_setup(*map_id);
+
+        for cube in map.cubes.iter_mut() {
+            for prop in cube.props_1.iter_mut() {
+                if let Category::Actor(actor_id) = prop.category {
+                    if actor_id.is_enemy() {
+                        prop.category = Category::Actor(ActorId::random_enemy());
+                    }
+                }
+            }
         }
     }
 

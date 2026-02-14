@@ -42,6 +42,9 @@ struct Config {
 
     #[serde(default)]
     furnace_fun: bool,
+
+    #[serde(default)]
+    enemies: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -57,6 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .all(|c| NOTE_DOORS_COSTS.contains(c))
     {
         eprintln!("Invalid note door!");
+        return Ok(());
+    }
+
+    if config.actors.iter().any(|c| c.is_enemy()) {
+        eprintln!("Can't shuffle enemies with other actors!");
         return Ok(());
     }
 
@@ -80,7 +88,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if config.furnace_fun {
+        // otherwise the game softlocks
         rando.remove_bridge_molehill();
+    }
+
+    if config.enemies {
+        rando.randomize_enemies();
     }
 
     rando.patch_code(&config)?;

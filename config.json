@@ -27,10 +27,10 @@
     ],
     "mix": true,
     "moves": true,
-    "notedoors": [
-        50, 260
-    ],
+    "notedoors": [50, 180, 260, 350, 450, 640, 765, 810, 828, 846, 864, 882],
     "worlds": true,
-    "pipes": false,
-    "cauldrons": false
+    "pipes": true,
+    "cauldrons": true,
+    "enemies": true,
+    "furnace_fun": true
 }

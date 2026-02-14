@@ -95,11 +95,12 @@ pub fn set_flags<W: Write + Seek>(
     length: u32,
     custom_address_start: u32,
 ) -> Result<(), Box<dyn Error>> {
-    // li r4, <length>
+    // li r5, <length>
     writer.write_u32::<BigEndian>(0x38a00000 + length)?;
 
-    // li r4, 1
-    writer.write_u32::<BigEndian>(0x38800001)?;
+    // li r4, 0b1....1 (length bits)
+    let bits = (u16::MAX >> (16 - length)) as u32;
+    writer.write_u32::<BigEndian>(0x38800000 + bits)?;
 
     // li r3, <flag>
     writer.write_u32::<BigEndian>(0x38600000 + start_flag)?;
@@ -107,7 +108,6 @@ pub fn set_flags<W: Write + Seek>(
     let current_custom_offset = writer.seek(SeekFrom::Current(0))?;
     let offset = (current_custom_offset - CODE_START_CUSTOM_ADDRESS) as u32;
 
-    // bl fileProgressFlag_setN
     writer.write_u32::<BigEndian>(call(
         custom_address_start + offset,
         Functions::FileProgressFlagSetN,
