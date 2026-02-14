@@ -32,6 +32,7 @@ use crate::data::xex::CODE_START_CUSTOM_ADDRESS;
 use crate::data::xex::LAIR_WARPS_TARGET;
 use crate::data::xex::MOLEHILLS_MOVES_DATA;
 use crate::enums::*;
+use crate::logic::randomizer::file_progress::FileProgress;
 use crate::utils::Vector3;
 use crate::utils::align_writer;
 use byteorder::BigEndian;
@@ -240,30 +241,96 @@ impl Randomizer {
 
         // remove "first time" flags
         // collectibles, meet mumbo, touched icy water, etc.
-        set_flags(&mut xex, 3, 16, custom_address_start)?;
-        set_flag(&mut xex, 0x14, custom_address_start)?;
-        set_flags(&mut xex, 0x16, 2, custom_address_start)?;
-        set_flag(&mut xex, 0x86, custom_address_start)?;
-        set_flags(&mut xex, 0xA7, 6, custom_address_start)?;
-        set_flag(&mut xex, 0xDD, custom_address_start)?;
-        set_flags(&mut xex, 0xDF, 2, custom_address_start)?;
+        set_flags(
+            &mut xex,
+            FileProgress::MusicNoteText,
+            16,
+            custom_address_start,
+        )?;
+        set_flag(
+            &mut xex,
+            FileProgress::HasTouchedFpIcyWater,
+            custom_address_start,
+        )?;
+        set_flags(
+            &mut xex,
+            FileProgress::StoodOnJigsawPodium,
+            2,
+            custom_address_start,
+        )?;
+        set_flag(
+            &mut xex,
+            FileProgress::HasTouchedMmmThornHedge,
+            custom_address_start,
+        )?;
+        set_flags(
+            &mut xex,
+            FileProgress::NearPuzzlePodiumText,
+            6,
+            custom_address_start,
+        )?;
+        set_flag(
+            &mut xex,
+            FileProgress::HasTouchedCcwIcyWater,
+            custom_address_start,
+        )?;
+        set_flags(
+            &mut xex,
+            FileProgress::CanRemoveAllPuzzlePieces,
+            2,
+            custom_address_start,
+        )?;
 
         // has entered levels
-        set_flags(&mut xex, 0xB0, 9, custom_address_start)?;
+        set_flags(
+            &mut xex,
+            FileProgress::HasEnteredMm,
+            9,
+            custom_address_start,
+        )?;
+
+        // skip lair cutscene
+        set_flag(
+            &mut xex,
+            FileProgress::EnterLairCutscene,
+            custom_address_start,
+        )?;
 
         // FF flags (met dingpot, saw FF cutscene, etc)
-        set_flags(&mut xex, 0xF3, 4, custom_address_start)?;
+        set_flags(&mut xex, FileProgress::MetDingpot, 4, custom_address_start)?;
+
+        // lair flags (met brentilda, pass 50 note door, etc)
+        set_flags(
+            &mut xex,
+            FileProgress::MetBrentilda,
+            4,
+            custom_address_start,
+        )?;
 
         if config.pipes {
-            set_flags(&mut xex, 0x1E, 4, custom_address_start)?;
+            set_flags(
+                &mut xex,
+                FileProgress::LairGrateToBgsPuzzleOpen,
+                4,
+                custom_address_start,
+            )?;
         }
 
         if config.cauldrons {
-            set_flags(&mut xex, 0x49, 10, custom_address_start)?;
+            set_flags(
+                &mut xex,
+                FileProgress::PinkCauldron1Active,
+                10,
+                custom_address_start,
+            )?;
         }
 
         if config.furnace_fun {
-            set_flag(&mut xex, 0xA6, custom_address_start)?;
+            set_flag(
+                &mut xex,
+                FileProgress::FurnaceFunComplete,
+                custom_address_start,
+            )?;
         }
 
         let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
@@ -1134,20 +1201,20 @@ fn distance(a: &Vector3<i16>, b: &Vector3<i16>) -> u32 {
     x * x + y * y + z * z
 }
 
-fn get_door_flag(cost: u32) -> u32 {
+fn get_door_flag(cost: u32) -> FileProgress {
     match cost {
-        50 => 0x3A,
-        180 => 0x3B,
-        260 => 0x3C,
-        350 => 0x3D,
-        450 => 0x3E,
-        640 => 0x3F,
-        765 => 0x40,
-        810 => 0x41,
-        828 => 0x42,
-        846 => 0x43,
-        864 => 0x44,
-        882 => 0x45,
+        50 => FileProgress::NoteDoor50Open,
+        180 => FileProgress::NoteDoor180Open,
+        260 => FileProgress::NoteDoor260Open,
+        350 => FileProgress::NoteDoor350Open,
+        450 => FileProgress::NoteDoor450Open,
+        640 => FileProgress::NoteDoor640Open,
+        765 => FileProgress::NoteDoor765Open,
+        810 => FileProgress::NoteDoor810Open,
+        828 => FileProgress::NoteDoor828Open,
+        846 => FileProgress::NoteDoor846Open,
+        864 => FileProgress::NoteDoor864Open,
+        882 => FileProgress::NoteDoor882Open,
         _ => unreachable!(),
     }
 }

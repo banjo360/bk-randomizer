@@ -6,6 +6,7 @@ use std::io::SeekFrom;
 use std::io::Write;
 
 use crate::enum_builder;
+use crate::enums::file_progress::FileProgress;
 
 use super::xex::CODE_START_CUSTOM_ADDRESS;
 
@@ -68,9 +69,11 @@ pub fn nop<W: Write>(writer: &mut W) -> Result<(), Box<dyn Error>> {
 
 pub fn set_flag<W: Write + Seek>(
     writer: &mut W,
-    flag: u32,
+    flag: FileProgress,
     custom_address_start: u32,
 ) -> Result<(), Box<dyn Error>> {
+    let flag: u32 = flag.into();
+
     // li r4, 1
     writer.write_u32::<BigEndian>(0x38800001)?;
 
@@ -80,7 +83,6 @@ pub fn set_flag<W: Write + Seek>(
     let current_custom_offset = writer.seek(SeekFrom::Current(0))?;
     let offset = (current_custom_offset - CODE_START_CUSTOM_ADDRESS) as u32;
 
-    // bl fileProgressFlag_set
     writer.write_u32::<BigEndian>(call(
         custom_address_start + offset,
         Functions::FileProgressFlagSet,
@@ -91,10 +93,12 @@ pub fn set_flag<W: Write + Seek>(
 
 pub fn set_flags<W: Write + Seek>(
     writer: &mut W,
-    start_flag: u32,
+    start_flag: FileProgress,
     length: u32,
     custom_address_start: u32,
 ) -> Result<(), Box<dyn Error>> {
+    let start_flag: u32 = start_flag.into();
+
     // li r5, <length>
     writer.write_u32::<BigEndian>(0x38a00000 + length)?;
 
