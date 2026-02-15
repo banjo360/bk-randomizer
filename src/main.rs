@@ -74,7 +74,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut rando = Randomizer::new()?;
 
     if config.worlds {
-        println!("shuffle worlds");
         rando.shuffle_world_order(&config)?;
     }
 
@@ -82,7 +81,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     rando.remove_specific_actors()?;
     rando.change_randomizer_dialogues();
 
-    println!("shuffle entities");
     if config.mix {
         rando.shuffle_entities(&config.actors, &config.sprites);
     } else {

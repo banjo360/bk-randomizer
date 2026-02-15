@@ -111,6 +111,8 @@ impl Randomizer {
     }
 
     pub fn shuffle_world_order(&mut self, config: &Config) -> Result<(), Box<dyn Error>> {
+        println!("shuffle worlds");
+
         let mut level_order = vec![
             LevelOrder::MumbosMountain,
             LevelOrder::TreasureTroveCove,
@@ -708,6 +710,8 @@ impl Randomizer {
     }
 
     pub fn shuffle_entities(&mut self, actors: &Vec<ActorId>, sprites: &Vec<SpritePropId>) {
+        println!("shuffle entities");
+
         for level in &LEVELS_INFO {
             self.shuffle_entities_for_level(actors, sprites, level);
         }
