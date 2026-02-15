@@ -325,7 +325,7 @@ impl Randomizer {
             )?;
         }
 
-        if config.furnace_fun {
+        if config.skip_furnace_fun {
             set_flag(
                 &mut xex,
                 FileProgress::FurnaceFunComplete,
@@ -385,6 +385,17 @@ impl Randomizer {
         // - DIALOG_JIGGY_COLLECT_10
         xex.seek(SeekFrom::Start(0x94068))?;
         xex.write_u32::<BigEndian>(jump(0x82092068, 0x820920e8))?;
+
+        if config.easy_talon_trot {
+            println!("easy talon trot");
+
+            // doesn't work
+            // xex.seek(SeekFrom::Start(0xadb7c))?;
+            // xex.write_u32::<BigEndian>(call(0x820abb7c, Functions::KeyPressed))?;
+
+            // xex.seek(SeekFrom::Start(0x1e174))?;
+            // xex.write_u32::<BigEndian>(call(0x820ac174, Functions::KeyPressed))?;
+        }
 
         println!("globaliser");
 
@@ -588,7 +599,7 @@ impl Randomizer {
             if molehills[0..talon_trot_max_pos]
                 .iter()
                 .any(|m| m.ability == Ability::TalonTrot)
-                // and shock jump is needed to access world 3
+                // and beak buster is needed to access world 3
                 && molehills[0..beak_buster_max_pos]
                     .iter()
                     .any(|m| m.ability == Ability::BeakBuster)
@@ -910,9 +921,9 @@ impl Randomizer {
             for flag in saved_flags {
                 let mut inserted = false;
                 for cube in &mut map.cubes {
-                    if flag.position.x as i32 / 1000 == cube.x
-                        && flag.position.y as i32 / 1000 == cube.y
-                        && flag.position.z as i32 / 1000 == cube.z
+                    if compare_position(flag.position.x, cube.x)
+                        && compare_position(flag.position.y, cube.y)
+                        && compare_position(flag.position.z, cube.z)
                     {
                         cube.props_1.push(flag);
                         inserted = true;
@@ -1217,4 +1228,11 @@ fn get_door_flag(cost: u32) -> FileProgress {
         882 => FileProgress::NoteDoor882Open,
         _ => unreachable!(),
     }
+}
+
+fn compare_position(position: i16, cube: i32) -> bool {
+    let position = position as i32;
+    let cube = cube * 1000;
+
+    cube <= position && position < (cube + 1000)
 }

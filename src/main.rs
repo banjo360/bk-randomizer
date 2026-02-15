@@ -41,10 +41,13 @@ struct Config {
     cauldrons: bool,
 
     #[serde(default)]
-    furnace_fun: bool,
+    skip_furnace_fun: bool,
 
     #[serde(default)]
     enemies: bool,
+
+    #[serde(default)]
+    easy_talon_trot: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -87,7 +90,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         rando.shuffle_entities(&vec![], &config.sprites);
     }
 
-    if config.furnace_fun {
+    if config.skip_furnace_fun {
         // otherwise the game softlocks
         rando.remove_bridge_molehill();
     }

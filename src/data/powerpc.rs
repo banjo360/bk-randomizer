@@ -17,6 +17,7 @@ enum_builder! {
         AbilitySetAllLearned = 0x8209ad78,
         FileProgressFlagSet = 0x820e62f0,
         FileProgressFlagSetN = 0x820e6390,
+        KeyPressed = 0x8209a818,
         CustomFunction = 0x82440cf4,
     }
 }

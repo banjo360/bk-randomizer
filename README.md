@@ -31,6 +31,11 @@ This is still an work-in-progress. There is a possibility of a game crash or a s
 
 `enemies` (bool): Randomize enemies in the whole game. (they are not shuffled, each enemy is replaced by another one at random)
 
+`skip_furnace_fun` (bool): Skips Furnace Fun. The board is still there but its state is set to "beaten".
+
+`easy_talon_trot` (bool): You stay in Talon Trot without having to keep a trigger pressed. Press a trigger again to exit Talon Trot. \
+⚠️ currently not working
+
 ### Available actors
 
 This is a list of *safe* actors to shuffle:

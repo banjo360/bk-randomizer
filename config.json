@@ -26,11 +26,12 @@
         "RedFeather"
     ],
     "mix": true,
-    "moves": true,
-    "notedoors": [50, 180, 260, 350, 450, 640, 765, 810, 828, 846, 864, 882],
+    "moves": false,
+    "notedoors": [260],
     "worlds": true,
     "pipes": true,
-    "cauldrons": true,
+    "cauldrons": false,
     "enemies": true,
-    "furnace_fun": true
+    "skip_furnace_fun": true,
+    "easy_talon_trot": false
 }
