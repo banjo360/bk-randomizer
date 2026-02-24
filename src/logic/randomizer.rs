@@ -16,6 +16,7 @@ use crate::assets::question::Question;
 use crate::assets::sprite::Sprite;
 use crate::assets::unknown::Unknown;
 use crate::data::db360::ASSETS;
+use crate::data::entrances::MAPS;
 use crate::data::levels::LAIR_MAPS;
 use crate::data::levels::LEVELS_INFO;
 use crate::data::levels::LevelInfo;
@@ -969,6 +970,114 @@ impl Randomizer {
                 Asset::Model(_model) => {}
                 Asset::Midi(_midi) => {}
                 Asset::Empty => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn shuffle_maps(&mut self) -> Result<(), Box<dyn Error>> {
+        #[derive(Debug)]
+        struct BuildingBlock {
+            id: MapSetupId,
+            links: Vec<Option<MapSetupId>>,
+        }
+
+        let mut current_maps = vec![];
+
+        'outer: loop {
+            let mut maps_left = vec![];
+
+            for map in MAPS {
+                maps_left.push(BuildingBlock {
+                    id: map.id,
+                    links: vec![None; map.entrances.len()],
+                });
+            }
+
+            current_maps = vec![maps_left.swap_remove(0)];
+            let rng = &mut rng();
+            while maps_left.len() > 0 {
+                let index = rng.random_range(..maps_left.len());
+                let mut map = maps_left.swap_remove(index);
+
+                let mut free = vec![];
+                // find maps with free entrance
+                for (i, m) in current_maps.iter().enumerate() {
+                    if m.links.iter().any(|l| l.is_none()) {
+                        free.push(i);
+                    }
+                }
+
+                if free.len() == 0 {
+                    // restart
+                    continue 'outer;
+                }
+
+                let link_to = rng.random_range(..free.len());
+                let link_to = free[link_to];
+
+                map.links.remove(
+                    map.links
+                        .iter()
+                        .position(|x| x.is_none())
+                        .expect("needle not found 1"),
+                );
+                map.links.push(Some(current_maps[link_to].id));
+
+                let rem_pos = current_maps[link_to]
+                    .links
+                    .iter()
+                    .position(|x| x.is_none())
+                    .expect("needle not found 2");
+                current_maps[link_to].links.remove(rem_pos);
+                current_maps[link_to].links.push(Some(map.id));
+
+                current_maps.push(map);
+            }
+
+            let mut free = vec![];
+            // find maps with free entrance
+            for (i, m) in current_maps.iter().enumerate() {
+                if m.links.iter().any(|l| l.is_none()) {
+                    free.push(i);
+                }
+            }
+
+            if free.len() != 2 {
+                continue;
+            }
+
+            // process 2 remaining unset entrances
+
+            let link_1 = free[0];
+            let link_2 = free[1];
+            let map_1 = current_maps[link_1].id;
+            let map_2 = current_maps[link_2].id;
+
+            if let Some(map) = current_maps.get_mut(link_1) {
+                map.links.retain(|x| x.is_some());
+                map.links.push(Some(map_2));
+            } else {
+                unreachable!();
+            }
+
+            if let Some(map) = current_maps.get_mut(link_2) {
+                map.links.retain(|x| x.is_some());
+                map.links.push(Some(map_1));
+            } else {
+                unreachable!();
+            }
+
+            break;
+        }
+
+        for map in MAPS {
+            let asset = self.get_map_setup(map.id);
+            let data = current_maps.iter().find(|m| m.id == map.id).unwrap();
+
+            for (entry, new_entry) in map.entrances.iter().zip(data.links.clone()) {
+                println!("{} / {}", entry.from, new_entry.unwrap());
             }
         }
 
