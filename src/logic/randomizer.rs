@@ -948,21 +948,29 @@ impl Randomizer {
                 let link_to = rng.random_range(..free.len());
                 let link_to = free[link_to];
 
-                map.links.remove(
-                    map.links
-                        .iter()
-                        .position(|x| x.is_none())
-                        .expect("needle not found 1"),
-                );
-                map.links.push(Some(current_maps[link_to].id));
-
-                let rem_pos = current_maps[link_to]
+                let mut free_links = map
                     .links
                     .iter()
-                    .position(|x| x.is_none())
-                    .expect("needle not found 2");
-                current_maps[link_to].links.remove(rem_pos);
-                current_maps[link_to].links.push(Some(map.id));
+                    .enumerate()
+                    .filter(|(_, l)| l.is_none())
+                    .map(|(i, _)| i)
+                    .collect::<Vec<_>>();
+
+                free_links.shuffle(rng);
+
+                map.links[free_links[0]] = Some(current_maps[link_to].id);
+
+                let mut free_links = current_maps[link_to]
+                    .links
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, l)| l.is_none())
+                    .map(|(i, _)| i)
+                    .collect::<Vec<_>>();
+
+                free_links.shuffle(rng);
+
+                current_maps[link_to].links[free_links[0]] = Some(map.id);
 
                 current_maps.push(map);
             }
@@ -987,15 +995,21 @@ impl Randomizer {
             let map_2 = current_maps[link_2].id;
 
             if let Some(map) = current_maps.get_mut(link_1) {
-                map.links.retain(|x| x.is_some());
-                map.links.push(Some(map_2));
+                let Some(index) = map.links.iter().position(|l| l.is_none()) else {
+                    unreachable!();
+                };
+
+                map.links[index] = Some(map_2);
             } else {
                 unreachable!();
             }
 
             if let Some(map) = current_maps.get_mut(link_2) {
-                map.links.retain(|x| x.is_some());
-                map.links.push(Some(map_1));
+                let Some(index) = map.links.iter().position(|l| l.is_none()) else {
+                    unreachable!();
+                };
+
+                map.links[index] = Some(map_1);
             } else {
                 unreachable!();
             }
