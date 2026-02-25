@@ -40,6 +40,9 @@ use byteorder::BigEndian;
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use byteorder::WriteBytesExt;
+use ppc::Block;
+use ppc::Instruction;
+use ppc::Register;
 use rand::Rng;
 use rand::prelude::SliceRandom;
 use rand::rng;
@@ -234,160 +237,88 @@ impl Randomizer {
             .open("default.xex")
             .expect("Can't open default.xex, missing?");
 
-        let custom_offset_start = xex.seek(SeekFrom::Start(CODE_START_CUSTOM_ADDRESS))?;
+        let mut body = Block::new(Functions::CustomFunction.into());
 
-        let custom_address_start: u32 = Functions::CustomFunction.into();
-
-        prologue(&mut xex)?;
+        prologue(&mut body);
 
         println!("remove flags");
 
         // remove "first time" flags
         // collectibles, meet mumbo, touched icy water, etc.
-        set_flags(
-            &mut xex,
-            FileProgress::MusicNoteText,
-            16,
-            custom_address_start,
-        )?;
-        set_flag(
-            &mut xex,
-            FileProgress::HasTouchedFpIcyWater,
-            custom_address_start,
-        )?;
-        set_flags(
-            &mut xex,
-            FileProgress::StoodOnJigsawPodium,
-            2,
-            custom_address_start,
-        )?;
-        set_flag(
-            &mut xex,
-            FileProgress::HasTouchedMmmThornHedge,
-            custom_address_start,
-        )?;
-        set_flags(
-            &mut xex,
-            FileProgress::NearPuzzlePodiumText,
-            6,
-            custom_address_start,
-        )?;
-        set_flag(
-            &mut xex,
-            FileProgress::HasTouchedCcwIcyWater,
-            custom_address_start,
-        )?;
-        set_flags(
-            &mut xex,
-            FileProgress::CanRemoveAllPuzzlePieces,
-            2,
-            custom_address_start,
-        )?;
+        set_flags(&mut body, FileProgress::MusicNoteText, 16);
+        set_flag(&mut body, FileProgress::HasTouchedFpIcyWater);
+        set_flags(&mut body, FileProgress::StoodOnJigsawPodium, 2);
+        set_flag(&mut body, FileProgress::HasTouchedMmmThornHedge);
+        set_flags(&mut body, FileProgress::NearPuzzlePodiumText, 6);
+        set_flag(&mut body, FileProgress::HasTouchedCcwIcyWater);
+        set_flags(&mut body, FileProgress::CanRemoveAllPuzzlePieces, 2);
 
         // has entered levels
-        set_flags(
-            &mut xex,
-            FileProgress::HasEnteredMm,
-            9,
-            custom_address_start,
-        )?;
+        set_flags(&mut body, FileProgress::HasEnteredMm, 9);
 
         // skip lair cutscene
-        set_flag(
-            &mut xex,
-            FileProgress::EnterLairCutscene,
-            custom_address_start,
-        )?;
+        set_flag(&mut body, FileProgress::EnterLairCutscene);
 
         // FF flags (met dingpot, saw FF cutscene, etc)
-        set_flags(&mut xex, FileProgress::MetDingpot, 4, custom_address_start)?;
+        set_flags(&mut body, FileProgress::MetDingpot, 4);
 
         // lair flags (met brentilda, pass 50 note door, etc)
-        set_flags(
-            &mut xex,
-            FileProgress::MetBrentilda,
-            4,
-            custom_address_start,
-        )?;
+        set_flags(&mut body, FileProgress::MetBrentilda, 4);
 
         if config.pipes {
-            set_flags(
-                &mut xex,
-                FileProgress::LairGrateToBgsPuzzleOpen,
-                4,
-                custom_address_start,
-            )?;
+            set_flags(&mut body, FileProgress::LairGrateToBgsPuzzleOpen, 4);
         }
 
         if config.cauldrons {
-            set_flags(
-                &mut xex,
-                FileProgress::PinkCauldron1Active,
-                10,
-                custom_address_start,
-            )?;
+            set_flags(&mut body, FileProgress::PinkCauldron1Active, 10);
         }
 
         if config.skip_furnace_fun {
-            set_flag(
-                &mut xex,
-                FileProgress::FurnaceFunComplete,
-                custom_address_start,
-            )?;
+            set_flag(&mut body, FileProgress::FurnaceFunComplete);
         }
 
-        let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
-        let offset = (current_custom_offset - custom_offset_start) as u32;
-
-        xex.write_u32::<BigEndian>(call(
-            custom_address_start + offset,
-            Functions::ChSmBottlesSkipIntroTutorial,
-        ))?;
+        body.add(ppc::Instruction::Bl(
+            Functions::ChSmBottlesSkipIntroTutorial.into(),
+        ));
 
         if config.moves {
             println!("unlock moves");
 
-            // li r3, -1
-            xex.write_u32::<BigEndian>(0x3860ffff)?;
-
-            let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
-            let offset = (current_custom_offset - custom_offset_start) as u32;
-
-            xex.write_u32::<BigEndian>(call(
-                custom_address_start + offset,
-                Functions::AbilitySetAllLearned,
-            ))?;
+            body.add(Instruction::Li(Register::R3, 0xffff));
+            body.add(ppc::Instruction::Bl(Functions::AbilitySetAllLearned.into()));
         }
 
         println!("open requested note doors");
 
         for cost in &config.notedoors {
             let flag = get_door_flag(*cost);
-            set_flag(&mut xex, flag, custom_address_start)?;
+            set_flag(&mut body, flag);
         }
 
-        epilogue(&mut xex)?;
+        epilogue(&mut body);
 
-        let current_custom_offset = xex.seek(SeekFrom::Current(0))?;
-        let custom_size = (current_custom_offset - custom_offset_start) as u32;
+        body.write(&mut xex)?;
 
         // increase size of .text section
         xex.seek(SeekFrom::Start(0x2248))?;
-        xex.write_u32::<LittleEndian>(0x3b0cf4 + custom_size)?;
+        xex.write_u32::<LittleEndian>(0x3b0cf4 + body.size() as u32)?;
 
         // patch chSmBottles_update
         xex.seek(SeekFrom::Start(0x18da14))?;
-        xex.write_u32::<BigEndian>(call(0x8218ba14, Functions::CustomFunction))?;
+        let call_custom_func = Instruction::Bl(Functions::CustomFunction.into());
+        call_custom_func.write(&mut xex, 0x8218ba14)?;
 
         // patch stoodOnPodiumCallback to skip bottles' instructions
         xex.seek(SeekFrom::Start(0x1826fc))?;
-        xex.write_u32::<BigEndian>(0x38800004)?;
+        let patch_flag = Instruction::Li(Register::R4, 4);
+        patch_flag.write(&mut xex, 0)?;
 
         // patch __baMarker_8028B848 to remove
         // - DIALOG_FIRST_JIGGY
         // - DIALOG_JIGGY_COLLECT_10
         xex.seek(SeekFrom::Start(0x94068))?;
-        xex.write_u32::<BigEndian>(jump(0x82092068, 0x820920e8))?;
+        let call_custom_func = Instruction::B(0x820920e8);
+        call_custom_func.write(&mut xex, 0x82092068)?;
 
         if config.easy_talon_trot {
             println!("easy talon trot");

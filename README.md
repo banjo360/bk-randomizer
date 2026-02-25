@@ -72,3 +72,7 @@ You can shuffle [any actor](src/enums/actors.rs) that are not enemies (e.g. Teeh
 - `RedFeather`
 - `ThickSeaweed`
 - `ThinSeaweed`
+
+## Build
+
+You need the [ppc](https://github.com/minirop/ppc) crate and, maybe, update its path in `Cargo.toml`.

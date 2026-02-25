@@ -1,14 +1,15 @@
+use super::xex::CODE_START_CUSTOM_ADDRESS;
+use crate::enum_builder;
+use crate::enums::file_progress::FileProgress;
 use byteorder::BigEndian;
 use byteorder::WriteBytesExt;
+use ppc::Block;
+use ppc::Instruction;
+use ppc::Register;
 use std::error::Error;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
-
-use crate::enum_builder;
-use crate::enums::file_progress::FileProgress;
-
-use super::xex::CODE_START_CUSTOM_ADDRESS;
 
 enum_builder! {
     #[repr(u32)]
@@ -22,29 +23,17 @@ enum_builder! {
     }
 }
 
-pub fn prologue<W: Write + Seek>(writer: &mut W) -> Result<(), Box<dyn Error>> {
-    // mflr r12
-    writer.write_u32::<BigEndian>(0x7d8802a6)?;
-    // stw r12, -8(r1)
-    writer.write_u32::<BigEndian>(0x9181fff8)?;
-    // stwu r1, -60h(r1)
-    writer.write_u32::<BigEndian>(0x9421ffa0)?;
-
-    Ok(())
+pub fn prologue(block: &mut Block) {
+    block.add(Instruction::Mflr(Register::R12));
+    block.add(Instruction::Stw(Register::R12, Register::R1, -0x08));
+    block.add(Instruction::Stw(Register::R1, Register::R1, -0x60));
 }
 
-pub fn epilogue<W: Write + Seek>(writer: &mut W) -> Result<(), Box<dyn Error>> {
-    // addi r1, r1, 60h
-    writer.write_u32::<BigEndian>(0x38210060)?;
-    // lwz r12, -8(r1)
-    writer.write_u32::<BigEndian>(0x8181fff8)?;
-    // mtlr r12
-    writer.write_u32::<BigEndian>(0x7d8803a6)?;
-
-    // blr
-    writer.write_u32::<BigEndian>(0x4e800020)?;
-
-    Ok(())
+pub fn epilogue(block: &mut Block) {
+    block.add(Instruction::Addi(Register::R1, Register::R1, 0x60));
+    block.add(Instruction::Lwz(Register::R12, Register::R1, -0x8));
+    block.add(Instruction::Mtlr(Register::R12));
+    block.add(Instruction::Blr);
 }
 
 pub fn call(address: u32, target: Functions) -> u32 {
@@ -63,60 +52,29 @@ pub fn jump(address: u32, target: u32) -> u32 {
 pub fn nop<W: Write>(writer: &mut W) -> Result<(), Box<dyn Error>> {
     // ori r0, r0, 0
     // i.e. "noop"
-    writer.write_u32::<BigEndian>(0x60000000)?;
+    let inst = Instruction::Ori(Register::R0, Register::R0, 0);
+    inst.write(writer, 0)?;
 
     Ok(())
 }
 
-pub fn set_flag<W: Write + Seek>(
-    writer: &mut W,
-    flag: FileProgress,
-    custom_address_start: u32,
-) -> Result<(), Box<dyn Error>> {
+pub fn set_flag(block: &mut Block, flag: FileProgress) {
     let flag: u32 = flag.into();
+    let func: u32 = Functions::FileProgressFlagSet.into();
 
-    // li r4, 1
-    writer.write_u32::<BigEndian>(0x38800001)?;
-
-    // li r3, <flag>
-    writer.write_u32::<BigEndian>(0x38600000 + flag)?;
-
-    let current_custom_offset = writer.seek(SeekFrom::Current(0))?;
-    let offset = (current_custom_offset - CODE_START_CUSTOM_ADDRESS) as u32;
-
-    writer.write_u32::<BigEndian>(call(
-        custom_address_start + offset,
-        Functions::FileProgressFlagSet,
-    ))?;
-
-    Ok(())
+    block.add(Instruction::Li(Register::R4, 1));
+    block.add(Instruction::Li(Register::R3, flag as u16));
+    block.add(Instruction::Bl(func));
 }
 
-pub fn set_flags<W: Write + Seek>(
-    writer: &mut W,
-    start_flag: FileProgress,
-    length: u32,
-    custom_address_start: u32,
-) -> Result<(), Box<dyn Error>> {
+pub fn set_flags(block: &mut Block, start_flag: FileProgress, length: u32) {
     let start_flag: u32 = start_flag.into();
 
-    // li r5, <length>
-    writer.write_u32::<BigEndian>(0x38a00000 + length)?;
+    let func: u32 = Functions::FileProgressFlagSetN.into();
 
-    // li r4, 0b1....1 (length bits)
-    let bits = (u16::MAX >> (16 - length)) as u32;
-    writer.write_u32::<BigEndian>(0x38800000 + bits)?;
-
-    // li r3, <flag>
-    writer.write_u32::<BigEndian>(0x38600000 + start_flag)?;
-
-    let current_custom_offset = writer.seek(SeekFrom::Current(0))?;
-    let offset = (current_custom_offset - CODE_START_CUSTOM_ADDRESS) as u32;
-
-    writer.write_u32::<BigEndian>(call(
-        custom_address_start + offset,
-        Functions::FileProgressFlagSetN,
-    ))?;
-
-    Ok(())
+    block.add(Instruction::Li(Register::R5, length as u16));
+    let bits = (u16::MAX >> (16 - length));
+    block.add(Instruction::Li(Register::R4, bits));
+    block.add(Instruction::Li(Register::R3, start_flag as u16));
+    block.add(Instruction::Bl(func));
 }
